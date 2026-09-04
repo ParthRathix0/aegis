@@ -1,0 +1,49 @@
+type Batch @entity(immutable: false) {
+  id: ID!                       # batchId
+  state: Int!
+  asset: Bytes!
+  buyVolume: BigInt!
+  sellVolume: BigInt!
+  settlementPrice: BigInt!
+  settled: Boolean!
+  voidedReason: String
+  createdAt: BigInt!
+  orders: [Order!]! @derivedFrom(field: "batch")
+  observations: [OracleObservation!]! @derivedFrom(field: "batch")
+}
+
+type Order @entity(immutable: false) {
+  id: ID!                       # batchId-user
+  batch: Batch!
+  user: Bytes!
+  amount: BigInt!
+  side: Int!                    # 0 BUY, 1 SELL
+  claimed: Boolean!
+}
+
+type OracleObservation @entity(immutable: true) {
+  id: ID!                       # batchId-oracleId-logIndex
+  batch: Batch!
+  oracleId: BigInt!
+  price: BigInt!
+  isValid: Boolean!
+  blockNumber: BigInt!
+}
+
+type OracleWeight @entity(immutable: false) {
+  id: ID!                       # oracleId
+  oracleId: BigInt!
+  weight: BigInt!
+  lastDelta1: BigInt!
+  lastDelta2: BigInt!
+  updatedAt: BigInt!
+}
+
+type Settlement @entity(immutable: true) {
+  id: ID!                       # batchId
+  batch: Batch!
+  settlementPrice: BigInt!
+  buyFillRatio: BigInt!
+  sellFillRatio: BigInt!
+  timestamp: BigInt!
+}

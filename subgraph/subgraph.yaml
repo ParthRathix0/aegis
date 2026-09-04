@@ -1,0 +1,40 @@
+specVersion: 1.0.0
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: AegisV3
+    network: sepolia
+    source:
+      address: "0xA514727e7EC43F6a99ceB11F25df36c922e040Ad"
+      abi: AegisV3
+      startBlock: 11633919
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - Batch
+        - Order
+        - OracleObservation
+        - OracleWeight
+        - Settlement
+      abis:
+        - name: AegisV3
+          file: ./abis/AegisV3.json
+      eventHandlers:
+        - event: BatchCreated(indexed uint256,address,uint256)
+          handler: handleBatchCreated
+        - event: Deposited(indexed uint256,indexed address,uint256,uint8)
+          handler: handleDeposited
+        - event: OraclePriceCollected(indexed uint256,indexed uint256,uint256,bool)
+          handler: handleOraclePriceCollected
+        - event: OracleWeightUpdated(indexed uint256,uint256,uint256,int256,int256)
+          handler: handleOracleWeightUpdated
+        - event: BatchSettled(indexed uint256,uint256,uint256,uint256)
+          handler: handleBatchSettled
+        - event: BatchVoided(indexed uint256,string)
+          handler: handleBatchVoided
+        - event: Claimed(indexed uint256,indexed address,uint256,uint256)
+          handler: handleClaimed
+      file: ./src/mapping.ts
