@@ -7,7 +7,7 @@ async function erc20(dec: number) {
 }
 
 describe("AegisV4 two-asset deposit", function () {
-  it("pulls quote on BUY and base on SELL", async function () {
+  it("pulls quote on BUY", async function () {
     const [user] = await ethers.getSigners();
     const base = await erc20(18);   // WETH-like
     const quote = await erc20(6);   // USDC-like
@@ -19,5 +19,19 @@ describe("AegisV4 two-asset deposit", function () {
     await aegis.deposit(1_000_000n, 0); // BUY -> pulls quote
 
     expect(await quote.balanceOf(await aegis.getAddress())).to.equal(1_000_000n);
+  });
+
+  it("pulls base on SELL", async function () {
+    const [user] = await ethers.getSigners();
+    const base = await erc20(18);
+    const quote = await erc20(6);
+    const V4 = await ethers.getContractFactory("AegisV4");
+    const aegis = await V4.deploy(await base.getAddress(), await quote.getAddress());
+
+    await base.mint(user.address, 5n * 10n ** 18n);
+    await base.approve(await aegis.getAddress(), 5n * 10n ** 18n);
+    await aegis.deposit(5n * 10n ** 18n, 1); // SELL -> pulls base
+
+    expect(await base.balanceOf(await aegis.getAddress())).to.equal(5n * 10n ** 18n);
   });
 });
