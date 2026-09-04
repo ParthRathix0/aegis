@@ -2,7 +2,9 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
 /**
- * Deploys Aegis V3.0 with 5 mock oracles for testing
+ * Deploys Aegis V3.0. On Sepolia: registers the real Chainlink ETH/USD Data Feed
+ * (techStackId 1) plus two placeholder oracles (stacks 2, 3). On other networks:
+ * deploys 5 mock oracles for local testing.
  */
 const deployAegisV3: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
