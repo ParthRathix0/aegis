@@ -1,0 +1,15 @@
+{
+  "name": "aegis-subgraph",
+  "version": "1.0.0",
+  "description": "The Graph subgraph for AegisV3 batch/oracle events",
+  "license": "MIT",
+  "scripts": {
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "deploy": "graph deploy --studio aegis-solver"
+  },
+  "devDependencies": {
+    "@graphprotocol/graph-cli": "^0.91.0",
+    "@graphprotocol/graph-ts": "^0.35.1"
+  }
+}
