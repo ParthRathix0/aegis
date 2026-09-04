@@ -12,22 +12,31 @@ const deployAegisV3: DeployFunction = async function (hre: HardhatRuntimeEnviron
   console.log("\n🚀 Deploying Aegis V3.0 Multi-Oracle System...\n");
 
   let mockWETHAddress;
-  let deployedOracles = [];
+  let deployedOracles: string[] = [];
+  let techStackIds: number[] = [];
 
-  // Live Sepolia Addresses
-  const SEPOLIA_ORACLES = [
-    "0xd183695ef91510D3a324a89e0159Daed5d7A9F6e", // GoodOracle1
-    "0xF78F12c4ef47e8e865F8DCFBB5bCe8CCCB2F9dAD", // GoodOracle2
-    "0x9eE7202D855b7a87CdB6C97A2dbe1C005263Ec29", // GoodOracle3
-    "0xf12Dd20D764be3F5D5Aea54cc19Af9F8b449796f", // SlightlyOffOracle
-    "0x3AeFBc8A39B4fda7247C39Dbabe888Ae7E305cc9", // VolatileOracle
-  ];
+  // Real Chainlink Data Feed (ETH/USD, 8 decimals) + 2 same-asset placeholders
+  // (placeholders stand in for Pyth/API3 sources until their adapters land).
+  const CHAINLINK_ETH_USD = "0x694AA1769357215DE4FAC081bf1f309aDC325306"; // real Chainlink ETH/USD, 8 decimals
   const SEPOLIA_WETH = "0x46059af680A19f3D149B3B8049D3aecA9050914C";
 
   if (network === "sepolia") {
-    console.log("🌍 Using existing Sepolia contracts for Oracles and WETH...");
+    console.log("🌍 Using real Chainlink ETH/USD + placeholder oracles on Sepolia...");
     mockWETHAddress = SEPOLIA_WETH;
-    deployedOracles = SEPOLIA_ORACLES;
+    const placeholderStackIds = [2, 3];
+    deployedOracles = [CHAINLINK_ETH_USD];
+    techStackIds = [1];
+    for (const stackId of placeholderStackIds) {
+      const ph = await deploy(`PlaceholderOracle${stackId}`, {
+        contract: "contracts/mocks/MockOracle.sol:MockOracle",
+        from: deployer,
+        args: [200000000000], // $2000, 8 decimals — matches ETH/USD scale
+        log: true,
+        autoMine: true,
+      });
+      deployedOracles.push(ph.address);
+      techStackIds.push(stackId);
+    }
   } else {
     // Deploy mock token for trading
     console.log("📦 Deploying Mock WETH token...");
@@ -74,6 +83,7 @@ const deployAegisV3: DeployFunction = async function (hre: HardhatRuntimeEnviron
       }
 
       deployedOracles.push(oracle.address);
+      techStackIds.push(1);
       console.log(`✅ ${config.name} deployed at: ${oracle.address}\n`);
       
       // Wait 5 seconds between deployments to avoid nonce issues
@@ -99,14 +109,18 @@ const deployAegisV3: DeployFunction = async function (hre: HardhatRuntimeEnviron
   console.log("⚙️  Setting up Aegis V3...\n");
   const aegisContract = await hre.ethers.getContractAt("AegisV3", aegisV3.address);
 
+  if (network === "sepolia") {
+    console.log("⏱️  Raising maxStaleness to 7200s for real Chainlink heartbeats...");
+    await (await aegisContract.setMaxStaleness(7200)).wait();
+  }
+
   console.log("📝 Registering oracles...");
   for (let i = 0; i < deployedOracles.length; i++) {
     try {
       // Check if already registered to save gas
       const oracleInfo = await aegisContract.getOracleInfo(i + 1).catch(() => null);
       if (!oracleInfo || oracleInfo.oracleAddress !== deployedOracles[i]) {
-        // Use techStackId 1 (Chainlink) for all for now, or rotate if needed
-        const techStackId = 1; 
+        const techStackId = techStackIds[i] ?? 1;
         const tx = await aegisContract.registerOracle(deployedOracles[i], techStackId);
         await tx.wait();
         console.log(`   ✓ Oracle ${i + 1} registered: ${deployedOracles[i]}`);
