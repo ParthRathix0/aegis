@@ -3,8 +3,8 @@ import { DeployFunction } from "hardhat-deploy/types";
 
 /**
  * Deploys Aegis V3.0. On Sepolia: registers the real Chainlink ETH/USD Data Feed
- * (techStackId 1) plus two placeholder oracles (stacks 2, 3). On other networks:
- * deploys 5 mock oracles for local testing.
+ * (techStackId 1) plus real Pyth (stack 2) + API3 (stack 3) adapters for genuine
+ * 3-tech-stack oracle diversity. On other networks: deploys 5 mock oracles for local testing.
  */
 const deployAegisV3: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
@@ -17,28 +17,37 @@ const deployAegisV3: DeployFunction = async function (hre: HardhatRuntimeEnviron
   let deployedOracles: string[] = [];
   let techStackIds: number[] = [];
 
-  // Real Chainlink Data Feed (ETH/USD, 8 decimals) + 2 same-asset placeholders
-  // (placeholders stand in for Pyth/API3 sources until their adapters land).
   const CHAINLINK_ETH_USD = "0x694AA1769357215DE4FAC081bf1f309aDC325306"; // real Chainlink ETH/USD, 8 decimals
   const SEPOLIA_WETH = "0x46059af680A19f3D149B3B8049D3aecA9050914C";
+  // Plan 2: real independent same-asset feeds via Chainlink-interface adapters
+  const PYTH_SEPOLIA = "0xDd24F84d36BF92C65F92307595335bdFab5Bbd21";
+  const PYTH_ETH_USD_ID = "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace";
+  const API3_ETH_USD_PROXY = "0x5b0cf2b36a65a6BB085D501B971e4c102B9Cd473";
 
   if (network === "sepolia") {
-    console.log("🌍 Using real Chainlink ETH/USD + placeholder oracles on Sepolia...");
+    console.log("🌍 Using real Chainlink ETH/USD + Pyth + API3 adapters on Sepolia...");
     mockWETHAddress = SEPOLIA_WETH;
-    const placeholderStackIds = [2, 3];
     deployedOracles = [CHAINLINK_ETH_USD];
     techStackIds = [1];
-    for (const stackId of placeholderStackIds) {
-      const ph = await deploy(`PlaceholderOracle${stackId}`, {
-        contract: "contracts/mocks/MockOracle.sol:MockOracle",
-        from: deployer,
-        args: [200000000000], // $2000, 8 decimals — matches ETH/USD scale
-        log: true,
-        autoMine: true,
-      });
-      deployedOracles.push(ph.address);
-      techStackIds.push(stackId);
-    }
+
+    console.log("📡 Deploying Pyth + API3 oracle adapters (real same-asset feeds)...");
+    const pythAdapter = await deploy("PythOracleAdapter", {
+      from: deployer,
+      args: [PYTH_SEPOLIA, PYTH_ETH_USD_ID],
+      log: true,
+      autoMine: true,
+    });
+    deployedOracles.push(pythAdapter.address);
+    techStackIds.push(2);
+
+    const api3Adapter = await deploy("API3OracleAdapter", {
+      from: deployer,
+      args: [API3_ETH_USD_PROXY],
+      log: true,
+      autoMine: true,
+    });
+    deployedOracles.push(api3Adapter.address);
+    techStackIds.push(3);
   } else {
     // Deploy mock token for trading
     console.log("📦 Deploying Mock WETH token...");
