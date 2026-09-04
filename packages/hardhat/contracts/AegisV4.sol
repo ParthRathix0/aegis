@@ -441,42 +441,41 @@ contract AegisV4 is Ownable, ReentrancyGuard {
         }
 
         uint256 price = batch.settlementPrice;
-        // Normalize sell volume to quote units so both volumes share a common scale
+
+        // Provably-solvent per-pull pro-rata payout.
+        // Each user pulls floor(their_deposit / their_side_volume * aggregate); the per-user
+        // floors sum to <= the aggregate, and matchedBase <= sellVolume, matchedQuote <= buyVolume
+        // by construction, so no claim ever reverts for insolvency (rounding dust stays in the contract).
         uint256 sellVolumeInQuote = _baseToQuote(batch.sellVolume, price);
+        uint256 matchedQuote = batch.buyVolume < sellVolumeInQuote ? batch.buyVolume : sellVolumeInQuote; // min
+        uint256 matchedBase = _quoteToBase(matchedQuote, price);
 
         if (order.side == Side.BUY) {
-            if (batch.buyVolume <= sellVolumeInQuote) {
-                // Buyer fully matched: all quote deposits converted to base
-                uint256 baseOut = _quoteToBase(order.amount, price);
-                if (baseOut > 0) IERC20(baseAsset).safeTransfer(msg.sender, baseOut);
-                emit Claimed(_batchId, msg.sender, baseOut, 0);
-            } else {
-                // Buyer partially matched: scale by available sell-side capacity
-                // filledQuote is this buyer's proportional share of sellVolumeInQuote
-                uint256 filledQuote = (order.amount * sellVolumeInQuote) / batch.buyVolume;
-                uint256 baseOut    = _quoteToBase(filledQuote, price);
-                uint256 refundQuote = order.amount - filledQuote;
-                if (baseOut > 0) IERC20(baseAsset).safeTransfer(msg.sender, baseOut);
-                if (refundQuote > 0) IERC20(quoteAsset).safeTransfer(msg.sender, refundQuote);
-                emit Claimed(_batchId, msg.sender, baseOut, refundQuote);
+            // buyer deposited order.amount in QUOTE
+            if (batch.buyVolume == 0) {
+                // One-sided guard: no buy volume means this order can't be a buyer; full refund.
+                IERC20(quoteAsset).safeTransfer(msg.sender, order.amount);
+                emit Claimed(_batchId, msg.sender, 0, order.amount);
+                return;
             }
+            uint256 baseOut = (order.amount * matchedBase) / batch.buyVolume; // base bought
+            uint256 quoteRefund = (order.amount * (batch.buyVolume - matchedQuote)) / batch.buyVolume; // unmatched quote back
+            if (baseOut > 0) IERC20(baseAsset).safeTransfer(msg.sender, baseOut);
+            if (quoteRefund > 0) IERC20(quoteAsset).safeTransfer(msg.sender, quoteRefund);
+            emit Claimed(_batchId, msg.sender, baseOut, quoteRefund);
         } else {
-            if (batch.buyVolume >= sellVolumeInQuote) {
-                // Seller fully matched: all base deposits converted to quote
-                uint256 quoteOut = _baseToQuote(order.amount, price);
-                if (quoteOut > 0) IERC20(quoteAsset).safeTransfer(msg.sender, quoteOut);
-                emit Claimed(_batchId, msg.sender, quoteOut, 0);
-            } else {
-                // Seller partially matched: seller's proportional share of the buy-side USDC.
-                // quoteShare is USDC-denominated (buyVolume is USDC, ratio is dimensionless WETH/WETH)
-                uint256 quoteShare = (batch.buyVolume * order.amount) / batch.sellVolume;
-                // base consumed is derived from the quote side to keep base accounting exact
-                uint256 baseConsumed = _quoteToBase(quoteShare, price);
-                uint256 refundBase   = order.amount - baseConsumed;
-                if (quoteShare > 0) IERC20(quoteAsset).safeTransfer(msg.sender, quoteShare);
-                if (refundBase > 0) IERC20(baseAsset).safeTransfer(msg.sender, refundBase);
-                emit Claimed(_batchId, msg.sender, quoteShare, refundBase);
+            // seller deposited order.amount in BASE
+            if (batch.sellVolume == 0) {
+                // One-sided guard: no sell volume means this order can't be a seller; full refund.
+                IERC20(baseAsset).safeTransfer(msg.sender, order.amount);
+                emit Claimed(_batchId, msg.sender, 0, order.amount);
+                return;
             }
+            uint256 quoteOut = (order.amount * matchedQuote) / batch.sellVolume; // quote received
+            uint256 baseRefund = (order.amount * (batch.sellVolume - matchedBase)) / batch.sellVolume; // unmatched base back
+            if (quoteOut > 0) IERC20(quoteAsset).safeTransfer(msg.sender, quoteOut);
+            if (baseRefund > 0) IERC20(baseAsset).safeTransfer(msg.sender, baseRefund);
+            emit Claimed(_batchId, msg.sender, quoteOut, baseRefund);
         }
     }
 
