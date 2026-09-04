@@ -376,12 +376,17 @@ contract AegisV4 is Ownable, ReentrancyGuard {
         require(batch.state == BatchState.DISPUTING, "Not in DISPUTING state");
         require(block.number >= batch.disputeEnd, "DISPUTING phase not ended");
 
-        uint256 totalVolume = batch.buyVolume + batch.sellVolume;
-        uint256 maxDisputedVolume = batch.buyDisputedVolume > batch.sellDisputedVolume 
-            ? batch.buyDisputedVolume 
-            : batch.sellDisputedVolume;
+        // Normalize to quote units before ratioing: buyVolume is quote(6-dec), sellVolume is
+        // base(18-dec). settlementPrice was set by startDispute (nonzero for a DISPUTING batch),
+        // so the base terms can be converted with _baseToQuote. Without this the 18-dec base term
+        // dominates and disputeRatio collapses to ~0, defeating the void circuit-breaker.
+        uint256 price = batch.settlementPrice;
+        uint256 totalVolume = batch.buyVolume + _baseToQuote(batch.sellVolume, price);
+        uint256 buyDisp = batch.buyDisputedVolume;
+        uint256 sellDispQuote = _baseToQuote(batch.sellDisputedVolume, price);
+        uint256 maxDisputedVolume = buyDisp > sellDispQuote ? buyDisp : sellDispQuote;
 
-        uint256 disputeRatio = (maxDisputedVolume * 100) / totalVolume;
+        uint256 disputeRatio = totalVolume == 0 ? 0 : (maxDisputedVolume * 100) / totalVolume;
 
         if (disputeRatio > DISPUTE_VOID_THRESHOLD) {
             _voidBatch(currentBatchId, "Dispute threshold exceeded");
@@ -403,10 +408,14 @@ contract AegisV4 is Ownable, ReentrancyGuard {
 
         _updateOracleWeights(currentBatchId);
 
-        // Normalize sell volume to quote units so fill ratios are dimensionally consistent
-        uint256 sellVolumeInQuote = _baseToQuote(batch.sellVolume, batch.settlementPrice);
-        uint256 buyFillRatio  = _calculateFillRatio(batch.buyVolume, sellVolumeInQuote, true);
-        uint256 sellFillRatio = _calculateFillRatio(batch.buyVolume, sellVolumeInQuote, false);
+        // Fill ratios are computed from NET (non-disputed) volumes so they stay consistent with
+        // the amounts actually paid out in claim(). Disputed volume is fully refunded and never
+        // matched, so it must be excluded here too.
+        uint256 netBuy = batch.buyVolume - batch.buyDisputedVolume;
+        uint256 netSell = batch.sellVolume - batch.sellDisputedVolume;
+        uint256 sellVolumeInQuote = _baseToQuote(netSell, batch.settlementPrice);
+        uint256 buyFillRatio  = _calculateFillRatio(netBuy, sellVolumeInQuote, true);
+        uint256 sellFillRatio = _calculateFillRatio(netBuy, sellVolumeInQuote, false);
 
         lastSettlementPrice = batch.settlementPrice;
 
@@ -442,37 +451,42 @@ contract AegisV4 is Ownable, ReentrancyGuard {
 
         uint256 price = batch.settlementPrice;
 
-        // Provably-solvent per-pull pro-rata payout.
-        // Each user pulls floor(their_deposit / their_side_volume * aggregate); the per-user
-        // floors sum to <= the aggregate, and matchedBase <= sellVolume, matchedQuote <= buyVolume
-        // by construction, so no claim ever reverts for insolvency (rounding dust stays in the contract).
-        uint256 sellVolumeInQuote = _baseToQuote(batch.sellVolume, price);
-        uint256 matchedQuote = batch.buyVolume < sellVolumeInQuote ? batch.buyVolume : sellVolumeInQuote; // min
+        // Provably-solvent per-pull pro-rata payout over NET (non-disputed) volume only.
+        // Disputed orders already took the full-refund early-return above; their deposits are
+        // reserved for that refund and MUST NOT be matched. Matching against gross volume would
+        // pay a fill against volume that was also refunded, draining the pool short.
+        // Each non-disputed user pulls floor(their_deposit / net_side_volume * aggregate); the
+        // per-user floors sum to <= the aggregate, matchedBase <= netSell and matchedQuote <= netBuy
+        // by construction, so no claim reverts for insolvency (rounding dust stays in the contract).
+        uint256 netBuy = batch.buyVolume - batch.buyDisputedVolume;    // quote units
+        uint256 netSell = batch.sellVolume - batch.sellDisputedVolume; // base units
+        uint256 sellVolumeInQuote = _baseToQuote(netSell, price);
+        uint256 matchedQuote = netBuy < sellVolumeInQuote ? netBuy : sellVolumeInQuote; // min
         uint256 matchedBase = _quoteToBase(matchedQuote, price);
 
         if (order.side == Side.BUY) {
             // buyer deposited order.amount in QUOTE
-            if (batch.buyVolume == 0) {
-                // One-sided guard: no buy volume means this order can't be a buyer; full refund.
+            if (netBuy == 0) {
+                // Whole non-disputed buy side is empty; full refund (avoids div-by-zero).
                 IERC20(quoteAsset).safeTransfer(msg.sender, order.amount);
                 emit Claimed(_batchId, msg.sender, 0, order.amount);
                 return;
             }
-            uint256 baseOut = (order.amount * matchedBase) / batch.buyVolume; // base bought
-            uint256 quoteRefund = (order.amount * (batch.buyVolume - matchedQuote)) / batch.buyVolume; // unmatched quote back
+            uint256 baseOut = (order.amount * matchedBase) / netBuy; // base bought
+            uint256 quoteRefund = (order.amount * (netBuy - matchedQuote)) / netBuy; // unmatched quote back
             if (baseOut > 0) IERC20(baseAsset).safeTransfer(msg.sender, baseOut);
             if (quoteRefund > 0) IERC20(quoteAsset).safeTransfer(msg.sender, quoteRefund);
             emit Claimed(_batchId, msg.sender, baseOut, quoteRefund);
         } else {
             // seller deposited order.amount in BASE
-            if (batch.sellVolume == 0) {
-                // One-sided guard: no sell volume means this order can't be a seller; full refund.
+            if (netSell == 0) {
+                // Whole non-disputed sell side is empty; full refund (avoids div-by-zero).
                 IERC20(baseAsset).safeTransfer(msg.sender, order.amount);
                 emit Claimed(_batchId, msg.sender, 0, order.amount);
                 return;
             }
-            uint256 quoteOut = (order.amount * matchedQuote) / batch.sellVolume; // quote received
-            uint256 baseRefund = (order.amount * (batch.sellVolume - matchedBase)) / batch.sellVolume; // unmatched base back
+            uint256 quoteOut = (order.amount * matchedQuote) / netSell; // quote received
+            uint256 baseRefund = (order.amount * (netSell - matchedBase)) / netSell; // unmatched base back
             if (quoteOut > 0) IERC20(quoteAsset).safeTransfer(msg.sender, quoteOut);
             if (baseRefund > 0) IERC20(baseAsset).safeTransfer(msg.sender, baseRefund);
             emit Claimed(_batchId, msg.sender, quoteOut, baseRefund);

@@ -271,4 +271,80 @@ describe("AegisV4 settlement", function () {
     expect(await base.balanceOf(aegisAddr)).to.be.gte(0n);
     expect(await quote.balanceOf(aegisAddr)).to.be.gte(0n);
   });
+
+  // ---- Test 5: Partial disputer that still settles (dispute-path solvency repro) ----
+  // This is the reviewer's insolvency repro: a disputer takes the full-refund early-return
+  // in claim() while the batch STILL settles (dispute ratio under the void threshold).
+  // Before the fix, matched volumes were computed from GROSS volume that still included the
+  // disputer's amount, so the counterparty was paid a fill against volume that was also refunded,
+  // draining the pool short -> the last claimant's safeTransfer reverted (funds locked).
+  it("partial disputer that still settles: all claims succeed (dispute solvency)", async function () {
+    const [, buyerA, buyerB, seller] = await ethers.getSigners();
+    const price2000 = 200000000000n; // 2000e8
+
+    const { aegis, base, quote } = await deployV4WithOracles(price2000);
+    const aegisAddr = await aegis.getAddress();
+
+    const buyerADeposit = 3000n * 10n ** 6n; // 3000 USDC (will be disputed)
+    const buyerBDeposit = 3000n * 10n ** 6n; // 3000 USDC
+    const sellerDeposit = 3n * 10n ** 18n;   // 3 WETH = 6000 USDC worth
+
+    await quote.mint(buyerA.address, buyerADeposit);
+    await quote.mint(buyerB.address, buyerBDeposit);
+    await base.mint(seller.address, sellerDeposit);
+    await quote.connect(buyerA).approve(aegisAddr, buyerADeposit);
+    await quote.connect(buyerB).approve(aegisAddr, buyerBDeposit);
+    await base.connect(seller).approve(aegisAddr, sellerDeposit);
+
+    await aegis.connect(buyerA).deposit(buyerADeposit, 0); // BUY
+    await aegis.connect(buyerB).deposit(buyerBDeposit, 0); // BUY
+    await aegis.connect(seller).deposit(sellerDeposit, 1); // SELL
+
+    // ---- Crank with a live dispute during the DISPUTING window ----
+    await mine(50);
+    await aegis.startAccumulation();
+    await mine(4);
+    await aegis.collectOraclePrices();
+    await mine(4);
+    await aegis.collectOraclePrices();
+    await mine(48);
+    await aegis.startDispute(); // -> DISPUTING; settlementPrice set
+
+    // buyerA disputes its own order (identified by msg.sender) during the DISPUTING phase.
+    expect(await aegis.getBatchState(0)).to.equal(2); // DISPUTING
+    await aegis.connect(buyerA).dispute();
+
+    // Dispute ratio check: maxDisputed = max(3000e6, 0) = 3000e6;
+    // totalVolume (quote units) = buyVol 6000e6 + sellVolInQuote 6000e6 = 12000e6;
+    // ratio = 25% < DISPUTE_VOID_THRESHOLD (33%) -> batch SETTLES (not voided).
+    await mine(15);
+    await aegis.startSettling();
+    expect(await aegis.getBatchState(0)).to.equal(3); // SETTLING, NOT voided (would be OPEN=0)
+
+    await mine(10);
+    await aegis.executeSettlement(); // settles batch 0
+
+    // ALL THREE claims must succeed — the pre-fix repro reverted the last one.
+    await expect(aegis.connect(buyerA).claim(0)).to.not.be.reverted;
+    await expect(aegis.connect(buyerB).claim(0)).to.not.be.reverted;
+    await expect(aegis.connect(seller).claim(0)).to.not.be.reverted;
+
+    // buyerA disputed -> full refund of deposited quote (3000 USDC), no WETH.
+    expect(await quote.balanceOf(buyerA.address)).to.equal(buyerADeposit, "buyerA full USDC refund");
+    expect(await base.balanceOf(buyerA.address)).to.equal(0n, "buyerA gets no WETH");
+
+    // Non-disputed matching: netBuy = 3000e6, netSell = 3e18, sellVolInQuote = 6000e6,
+    // matchedQuote = 3000e6 -> matchedBase = 1.5 WETH.
+    // buyerB (only non-disputed buyer) gets all matchedBase = 1.5 WETH, no quote refund.
+    expect(await base.balanceOf(buyerB.address)).to.be.closeTo(15n * 10n ** 17n, 2n, "buyerB ~1.5 WETH");
+    expect(await quote.balanceOf(buyerB.address)).to.equal(0n, "buyerB no quote refund (fully matched)");
+
+    // seller gets matchedQuote = 3000 USDC, base refund = 3 - 1.5 = 1.5 WETH.
+    expect(await quote.balanceOf(seller.address)).to.be.closeTo(3000n * 10n ** 6n, 2n, "seller ~3000 USDC");
+    expect(await base.balanceOf(seller.address)).to.be.closeTo(15n * 10n ** 17n, 2n, "seller ~1.5 WETH refund");
+
+    // Solvency: all transfers executed without revert; residual balances non-negative.
+    expect(await base.balanceOf(aegisAddr)).to.be.gte(0n);
+    expect(await quote.balanceOf(aegisAddr)).to.be.gte(0n);
+  });
 });
