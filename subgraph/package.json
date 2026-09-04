@@ -6,7 +6,7 @@
   "scripts": {
     "codegen": "graph codegen",
     "build": "graph build",
-    "deploy": "graph deploy --studio aegis-solver"
+    "deploy": "graph deploy aegis-solver"
   },
   "devDependencies": {
     "@graphprotocol/graph-cli": "^0.91.0",
