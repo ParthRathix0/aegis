@@ -58,4 +58,22 @@ describe("AegisV3 Protocol", function () {
 
     console.log("    ✓ Successfully registered 3 oracles");
   });
+
+  it("Should default maxStaleness to 3600 and let owner update it", async function () {
+    const AegisV3 = await ethers.getContractFactory("AegisV3");
+    const aegis = await AegisV3.deploy();
+
+    expect(await aegis.maxStaleness()).to.equal(3600);
+
+    await aegis.setMaxStaleness(7200);
+    expect(await aegis.maxStaleness()).to.equal(7200);
+  });
+
+  it("Should block non-owners from setting maxStaleness", async function () {
+    const [, stranger] = await ethers.getSigners();
+    const AegisV3 = await ethers.getContractFactory("AegisV3");
+    const aegis = await AegisV3.deploy();
+
+    await expect(aegis.connect(stranger).setMaxStaleness(7200)).to.be.reverted;
+  });
 });

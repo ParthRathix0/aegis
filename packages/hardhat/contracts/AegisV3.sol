@@ -129,9 +129,9 @@ contract AegisV3 is Ownable, ReentrancyGuard {
     
     uint256 public constant BASIS_POINTS = 10000;         
     uint256 public constant PRECISION = 1e18;
-    uint256 public constant MAX_STALENESS = 300;          
 
     // ===== STATE VARIABLES =====
+    uint256 public maxStaleness = 3600; // seconds; owner-tunable for real Chainlink heartbeats
     uint256 public batchCounter;
     mapping(uint256 => Batch) public batches;
     
@@ -196,6 +196,11 @@ contract AegisV3 is Ownable, ReentrancyGuard {
     function deactivateOracle(uint256 _oracleId) external onlyOwner {
         require(_oracleId > 0 && _oracleId <= oracleCount, "Invalid oracle ID");
         oracles[_oracleId].isActive = false;
+    }
+
+    function setMaxStaleness(uint256 _seconds) external onlyOwner {
+        require(_seconds > 0, "Staleness must be > 0");
+        maxStaleness = _seconds;
     }
 
     function activateOracle(uint256 _oracleId) external onlyOwner {
@@ -291,7 +296,7 @@ contract AegisV3 is Ownable, ReentrancyGuard {
                 uint256 updatedAt,
                 uint80
             ) {
-                if (block.timestamp - updatedAt > MAX_STALENESS) {
+                if (block.timestamp - updatedAt > maxStaleness) {
                     emit OraclePriceCollected(currentBatchId, i, 0, false);
                     continue;
                 }
