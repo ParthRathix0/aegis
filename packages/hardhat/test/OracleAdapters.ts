@@ -43,3 +43,30 @@ describe("PythOracleAdapter", function () {
     expect(answer).to.equal(200000000000n); // scaled down to 8 decimals
   });
 });
+
+describe("API3OracleAdapter", function () {
+  it("scales API3 18-decimal value to 8 decimals", async function () {
+    const MockProxy = await ethers.getContractFactory("MockApi3Proxy");
+    const proxy = await MockProxy.deploy();
+    // $2000 with 18 decimals
+    await proxy.set(2000n * 10n ** 18n, Math.floor(Date.now() / 1000));
+
+    const Adapter = await ethers.getContractFactory("API3OracleAdapter");
+    const adapter = await Adapter.deploy(await proxy.getAddress());
+
+    const [, answer] = await adapter.latestRoundData();
+    expect(answer).to.equal(200000000000n); // 8 decimals
+  });
+
+  it("scales a different 18-decimal value proportionally (e.g. $3500)", async function () {
+    const MockProxy = await ethers.getContractFactory("MockApi3Proxy");
+    const proxy = await MockProxy.deploy();
+    await proxy.set(3500n * 10n ** 18n, Math.floor(Date.now() / 1000));
+
+    const Adapter = await ethers.getContractFactory("API3OracleAdapter");
+    const adapter = await Adapter.deploy(await proxy.getAddress());
+
+    const [, answer] = await adapter.latestRoundData();
+    expect(answer).to.equal(350000000000n); // $3500 at 8 decimals
+  });
+});
