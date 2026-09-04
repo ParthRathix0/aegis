@@ -403,8 +403,10 @@ contract AegisV4 is Ownable, ReentrancyGuard {
 
         _updateOracleWeights(currentBatchId);
 
-        uint256 buyFillRatio = _calculateFillRatio(batch.buyVolume, batch.sellVolume, true);
-        uint256 sellFillRatio = _calculateFillRatio(batch.buyVolume, batch.sellVolume, false);
+        // Normalize sell volume to quote units so fill ratios are dimensionally consistent
+        uint256 sellVolumeInQuote = _baseToQuote(batch.sellVolume, batch.settlementPrice);
+        uint256 buyFillRatio  = _calculateFillRatio(batch.buyVolume, sellVolumeInQuote, true);
+        uint256 sellFillRatio = _calculateFillRatio(batch.buyVolume, sellVolumeInQuote, false);
 
         lastSettlementPrice = batch.settlementPrice;
 
@@ -425,29 +427,57 @@ contract AegisV4 is Ownable, ReentrancyGuard {
     function claim(uint256 _batchId) external nonReentrant {
         Batch storage batch = batches[_batchId];
         UserOrder storage order = batch.orders[msg.sender];
-        
+
         require(order.amount > 0, "No order");
         require(!order.claimed, "Already claimed");
-
         order.claimed = true;
 
-        uint256 filled = 0;
-        uint256 refunded = 0;
-
+        // Voided (state reset to OPEN) or disputed -> full refund in the DEPOSITED asset
         if (order.disputed || batch.state == BatchState.OPEN) {
-            refunded = order.amount;
+            address inTok = order.side == Side.BUY ? quoteAsset : baseAsset;
+            IERC20(inTok).safeTransfer(msg.sender, order.amount);
+            emit Claimed(_batchId, msg.sender, 0, order.amount);
+            return;
+        }
+
+        uint256 price = batch.settlementPrice;
+        // Normalize sell volume to quote units so both volumes share a common scale
+        uint256 sellVolumeInQuote = _baseToQuote(batch.sellVolume, price);
+
+        if (order.side == Side.BUY) {
+            if (batch.buyVolume <= sellVolumeInQuote) {
+                // Buyer fully matched: all quote deposits converted to base
+                uint256 baseOut = _quoteToBase(order.amount, price);
+                if (baseOut > 0) IERC20(baseAsset).safeTransfer(msg.sender, baseOut);
+                emit Claimed(_batchId, msg.sender, baseOut, 0);
+            } else {
+                // Buyer partially matched: scale by available sell-side capacity
+                // filledQuote is this buyer's proportional share of sellVolumeInQuote
+                uint256 filledQuote = (order.amount * sellVolumeInQuote) / batch.buyVolume;
+                uint256 baseOut    = _quoteToBase(filledQuote, price);
+                uint256 refundQuote = order.amount - filledQuote;
+                if (baseOut > 0) IERC20(baseAsset).safeTransfer(msg.sender, baseOut);
+                if (refundQuote > 0) IERC20(quoteAsset).safeTransfer(msg.sender, refundQuote);
+                emit Claimed(_batchId, msg.sender, baseOut, refundQuote);
+            }
         } else {
-            uint256 fillRatio = _calculateFillRatio(batch.buyVolume, batch.sellVolume, order.side == Side.BUY);
-            filled = (order.amount * fillRatio) / PRECISION;
-            refunded = order.amount - filled;
+            if (batch.buyVolume >= sellVolumeInQuote) {
+                // Seller fully matched: all base deposits converted to quote
+                uint256 quoteOut = _baseToQuote(order.amount, price);
+                if (quoteOut > 0) IERC20(quoteAsset).safeTransfer(msg.sender, quoteOut);
+                emit Claimed(_batchId, msg.sender, quoteOut, 0);
+            } else {
+                // Seller partially matched: seller's proportional share of the buy-side USDC.
+                // quoteShare is USDC-denominated (buyVolume is USDC, ratio is dimensionless WETH/WETH)
+                uint256 quoteShare = (batch.buyVolume * order.amount) / batch.sellVolume;
+                // base consumed is derived from the quote side to keep base accounting exact
+                uint256 baseConsumed = _quoteToBase(quoteShare, price);
+                uint256 refundBase   = order.amount - baseConsumed;
+                if (quoteShare > 0) IERC20(quoteAsset).safeTransfer(msg.sender, quoteShare);
+                if (refundBase > 0) IERC20(baseAsset).safeTransfer(msg.sender, refundBase);
+                emit Claimed(_batchId, msg.sender, quoteShare, refundBase);
+            }
         }
-
-        uint256 total = filled + refunded;
-        if (total > 0) {
-            IERC20(batch.asset).safeTransfer(msg.sender, total);
-        }
-
-        emit Claimed(_batchId, msg.sender, filled, refunded);
     }
 
     // ===== INTERNAL CALCULATIONS =====
@@ -752,6 +782,18 @@ contract AegisV4 is Ownable, ReentrancyGuard {
         } else {
             return _sellVolume <= _buyVolume ? PRECISION : (_buyVolume * PRECISION) / _sellVolume;
         }
+    }
+
+    // quoteAmount (6-dec) at price (8-dec, quote per base) -> baseAmount (18-dec)
+    // Derivation: base = quote / price; decimals: (quote * 1e18 * 1e8) / (price * 1e6) = (quote * 1e20) / price
+    function _quoteToBase(uint256 quoteAmount, uint256 price) internal pure returns (uint256) {
+        return (quoteAmount * 1e20) / price;
+    }
+
+    // baseAmount (18-dec) at price (8-dec) -> quoteAmount (6-dec)
+    // Derivation: quote = base * price; decimals: (base * price) / (1e18 * 1e8 / 1e6) = (base * price) / 1e20
+    function _baseToQuote(uint256 baseAmount, uint256 price) internal pure returns (uint256) {
+        return (baseAmount * price) / 1e20;
     }
 
     function _calculateDeviation(uint256 _value1, uint256 _value2) internal pure returns (uint256) {
