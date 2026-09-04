@@ -6,8 +6,72 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 
 const deployedContracts = {
   11155111: {
+    API3OracleAdapter: {
+      address: "0x111ef8C8d0d9875194B3D630319327620C5c9996",
+      abi: [
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "_proxy",
+              type: "address",
+            },
+          ],
+          stateMutability: "nonpayable",
+          type: "constructor",
+        },
+        {
+          inputs: [],
+          name: "latestRoundData",
+          outputs: [
+            {
+              internalType: "uint80",
+              name: "",
+              type: "uint80",
+            },
+            {
+              internalType: "int256",
+              name: "",
+              type: "int256",
+            },
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+            {
+              internalType: "uint80",
+              name: "",
+              type: "uint80",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "proxy",
+          outputs: [
+            {
+              internalType: "contract IApi3Proxy",
+              name: "",
+              type: "address",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+      ],
+      inheritedFunctions: {},
+      deployedOnBlock: 11633917,
+    },
     AegisV3: {
-      address: "0x486fcED285bE3A049Ac8a2a43288B0AF955Fd799",
+      address: "0xA514727e7EC43F6a99ceB11F25df36c922e040Ad",
       abi: [
         {
           inputs: [],
@@ -1217,49 +1281,35 @@ const deployedContracts = {
         renounceOwnership: "@openzeppelin/contracts/access/Ownable.sol",
         transferOwnership: "@openzeppelin/contracts/access/Ownable.sol",
       },
-      deployedOnBlock: 11633517,
+      deployedOnBlock: 11633919,
     },
-    PlaceholderOracle2: {
-      address: "0x44E824766A91B8e556D9fE2ACe3751bCE0133564",
+    PythOracleAdapter: {
+      address: "0xDFdd46c593586028739E063204b8741bc3EF730D",
       abi: [
         {
           inputs: [
             {
-              internalType: "int256",
-              name: "_initialPrice",
-              type: "int256",
+              internalType: "address",
+              name: "_pyth",
+              type: "address",
+            },
+            {
+              internalType: "bytes32",
+              name: "_priceId",
+              type: "bytes32",
             },
           ],
           stateMutability: "nonpayable",
           type: "constructor",
         },
         {
-          anonymous: false,
-          inputs: [
-            {
-              indexed: false,
-              internalType: "int256",
-              name: "newPrice",
-              type: "int256",
-            },
-            {
-              indexed: false,
-              internalType: "uint256",
-              name: "timestamp",
-              type: "uint256",
-            },
-          ],
-          name: "PriceUpdated",
-          type: "event",
-        },
-        {
           inputs: [],
-          name: "isVolatile",
+          name: "MAX_AGE",
           outputs: [
             {
-              internalType: "bool",
+              internalType: "uint256",
               name: "",
-              type: "bool",
+              type: "uint256",
             },
           ],
           stateMutability: "view",
@@ -1271,27 +1321,27 @@ const deployedContracts = {
           outputs: [
             {
               internalType: "uint80",
-              name: "_roundId",
+              name: "",
               type: "uint80",
             },
             {
               internalType: "int256",
-              name: "answer",
+              name: "",
               type: "int256",
             },
             {
               internalType: "uint256",
-              name: "startedAt",
+              name: "",
               type: "uint256",
             },
             {
               internalType: "uint256",
-              name: "_updatedAt",
+              name: "",
               type: "uint256",
             },
             {
               internalType: "uint80",
-              name: "answeredInRound",
+              name: "",
               type: "uint80",
             },
           ],
@@ -1300,10 +1350,23 @@ const deployedContracts = {
         },
         {
           inputs: [],
-          name: "owner",
+          name: "priceId",
           outputs: [
             {
-              internalType: "address",
+              internalType: "bytes32",
+              name: "",
+              type: "bytes32",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "pyth",
+          outputs: [
+            {
+              internalType: "contract IPyth",
               name: "",
               type: "address",
             },
@@ -1311,339 +1374,9 @@ const deployedContracts = {
           stateMutability: "view",
           type: "function",
         },
-        {
-          inputs: [],
-          name: "price",
-          outputs: [
-            {
-              internalType: "int256",
-              name: "",
-              type: "int256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "priceDeviation",
-          outputs: [
-            {
-              internalType: "int256",
-              name: "",
-              type: "int256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "roundId",
-          outputs: [
-            {
-              internalType: "uint80",
-              name: "",
-              type: "uint80",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "int256",
-              name: "_deviationBps",
-              type: "int256",
-            },
-          ],
-          name: "setDeviation",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "int256",
-              name: "_newPrice",
-              type: "int256",
-            },
-          ],
-          name: "setPrice",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "bool",
-              name: "_volatile",
-              type: "bool",
-            },
-          ],
-          name: "setVolatile",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "int256",
-              name: "_crashPercent",
-              type: "int256",
-            },
-          ],
-          name: "simulateCrash",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "int256",
-              name: "_pumpPercent",
-              type: "int256",
-            },
-          ],
-          name: "simulatePump",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "updatedAt",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 11633514,
-    },
-    PlaceholderOracle3: {
-      address: "0x1A4Ebe2C02CE8Ad63838668C0D45cF3B266dA20f",
-      abi: [
-        {
-          inputs: [
-            {
-              internalType: "int256",
-              name: "_initialPrice",
-              type: "int256",
-            },
-          ],
-          stateMutability: "nonpayable",
-          type: "constructor",
-        },
-        {
-          anonymous: false,
-          inputs: [
-            {
-              indexed: false,
-              internalType: "int256",
-              name: "newPrice",
-              type: "int256",
-            },
-            {
-              indexed: false,
-              internalType: "uint256",
-              name: "timestamp",
-              type: "uint256",
-            },
-          ],
-          name: "PriceUpdated",
-          type: "event",
-        },
-        {
-          inputs: [],
-          name: "isVolatile",
-          outputs: [
-            {
-              internalType: "bool",
-              name: "",
-              type: "bool",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "latestRoundData",
-          outputs: [
-            {
-              internalType: "uint80",
-              name: "_roundId",
-              type: "uint80",
-            },
-            {
-              internalType: "int256",
-              name: "answer",
-              type: "int256",
-            },
-            {
-              internalType: "uint256",
-              name: "startedAt",
-              type: "uint256",
-            },
-            {
-              internalType: "uint256",
-              name: "_updatedAt",
-              type: "uint256",
-            },
-            {
-              internalType: "uint80",
-              name: "answeredInRound",
-              type: "uint80",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "owner",
-          outputs: [
-            {
-              internalType: "address",
-              name: "",
-              type: "address",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "price",
-          outputs: [
-            {
-              internalType: "int256",
-              name: "",
-              type: "int256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "priceDeviation",
-          outputs: [
-            {
-              internalType: "int256",
-              name: "",
-              type: "int256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "roundId",
-          outputs: [
-            {
-              internalType: "uint80",
-              name: "",
-              type: "uint80",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "int256",
-              name: "_deviationBps",
-              type: "int256",
-            },
-          ],
-          name: "setDeviation",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "int256",
-              name: "_newPrice",
-              type: "int256",
-            },
-          ],
-          name: "setPrice",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "bool",
-              name: "_volatile",
-              type: "bool",
-            },
-          ],
-          name: "setVolatile",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "int256",
-              name: "_crashPercent",
-              type: "int256",
-            },
-          ],
-          name: "simulateCrash",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "int256",
-              name: "_pumpPercent",
-              type: "int256",
-            },
-          ],
-          name: "simulatePump",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "updatedAt",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-      ],
-      inheritedFunctions: {},
-      deployedOnBlock: 11633515,
+      deployedOnBlock: 11633916,
     },
   },
 } as const;

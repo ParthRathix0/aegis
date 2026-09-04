@@ -1,0 +1,36 @@
+{
+  "language": "Solidity",
+  "sources": {
+    "contracts/adapters/API3OracleAdapter.sol": {
+      "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\ninterface IApi3Proxy {\n    function read() external view returns (int224 value, uint32 timestamp);\n}\n\n/// @notice Exposes an API3 dAPI proxy as Chainlink-style latestRoundData() at 8 decimals.\ncontract API3OracleAdapter {\n    IApi3Proxy public immutable proxy;\n\n    constructor(address _proxy) {\n        proxy = IApi3Proxy(_proxy);\n    }\n\n    function latestRoundData()\n        external\n        view\n        returns (uint80, int256, uint256, uint256, uint80)\n    {\n        (int224 value, uint32 timestamp) = proxy.read();\n        // API3 values are 18 decimals; Aegis expects 8 -> divide by 1e10.\n        int256 scaled = int256(value) / 1e10;\n        return (uint80(1), scaled, timestamp, timestamp, uint80(1));\n    }\n}\n"
+    }
+  },
+  "settings": {
+    "optimizer": {
+      "enabled": true,
+      "runs": 200
+    },
+    "evmVersion": "paris",
+    "outputSelection": {
+      "*": {
+        "*": [
+          "abi",
+          "evm.bytecode",
+          "evm.deployedBytecode",
+          "evm.methodIdentifiers",
+          "metadata",
+          "devdoc",
+          "userdoc",
+          "storageLayout",
+          "evm.gasEstimates"
+        ],
+        "": [
+          "ast"
+        ]
+      }
+    },
+    "metadata": {
+      "useLiteralContent": true
+    }
+  }
+}
