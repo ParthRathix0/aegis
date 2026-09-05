@@ -25,6 +25,8 @@ dataSources:
       eventHandlers:
         - event: BatchCreated(indexed uint256,address,uint256)
           handler: handleBatchCreated
+        - event: BatchStateChanged(indexed uint256,uint8,uint256)
+          handler: handleBatchStateChanged
         - event: Deposited(indexed uint256,indexed address,uint256,uint8)
           handler: handleDeposited
         - event: OraclePriceCollected(indexed uint256,indexed uint256,uint256,bool)

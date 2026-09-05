@@ -1,6 +1,6 @@
 import { BigInt } from "@graphprotocol/graph-ts";
 import {
-  BatchCreated, Deposited, OraclePriceCollected,
+  BatchCreated, BatchStateChanged, Deposited, OraclePriceCollected,
   OracleWeightUpdated, BatchSettled, BatchVoided, Claimed,
 } from "../generated/AegisV3/AegisV3";
 import { Batch, Order, OracleObservation, OracleWeight, Settlement } from "../generated/schema";
@@ -15,6 +15,18 @@ export function handleBatchCreated(e: BatchCreated): void {
   b.settled = false;
   b.createdAt = e.block.timestamp;
   b.save();
+}
+
+// Tracks every phase transition (ACCUMULATING/DISPUTING/SETTLING) so the
+// Solver Agent can read the live phase from the subgraph. Without this the
+// batch state would only ever be 0 (created) or 3 (settled), leaving the
+// agent blind to the middle phases.
+export function handleBatchStateChanged(e: BatchStateChanged): void {
+  let b = Batch.load(e.params.batchId.toString());
+  if (b != null) {
+    b.state = e.params.newState;
+    b.save();
+  }
 }
 
 export function handleDeposited(e: Deposited): void {
