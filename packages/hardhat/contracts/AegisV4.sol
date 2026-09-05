@@ -467,7 +467,7 @@ contract AegisV4 is Ownable, ReentrancyGuard {
     ///      matched leg and disputed refunds are untouched. The received counter-asset is escrowed
     ///      in `batch.aquaOut` and paid pro-rata to the uncrossed side in claim() — preserving the
     ///      contract's provable per-pull solvency (floors sum to <= aquaOut).
-    function routeUncrossedToAqua(uint256 _batchId, uint256 _minOut, bytes calldata _aquaCalldata) external {
+    function routeUncrossedToAqua(uint256 _batchId, uint256 _minOut, bytes calldata _aquaCalldata) external nonReentrant {
         require(aquaRouter != address(0), "Aqua router unset");
         Batch storage batch = batches[_batchId];
         require(batch.settlementPrice > 0, "Batch not settled");
