@@ -5,9 +5,11 @@
   "description": "Autonomous Solver Agent that cranks the Aegis V4 batch lifecycle",
   "scripts": {
     "test": "vitest run",
-    "start": "tsx src/loop.ts"
+    "start": "tsx src/loop.ts",
+    "circle:verify": "tsx src/verify-circle.ts"
   },
   "dependencies": {
+    "@circle-fin/developer-controlled-wallets": "^10.8.0",
     "dotenv": "^16.4.5",
     "ethers": "^6.13.2",
     "graphql": "^16",
