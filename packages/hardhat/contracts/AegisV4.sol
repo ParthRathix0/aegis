@@ -487,6 +487,14 @@ contract AegisV4 is Ownable, ReentrancyGuard {
         emit UncrossedRouted(_batchId, sideBuy, amountIn, out);
     }
 
+    /// @notice The uncrossed (over-supplied) side of a settled batch and its remainder amount, so the
+    ///         Solver Agent can fetch an Aqua quote for it before calling routeUncrossedToAqua.
+    /// @return sideBuy  true if the buy side is over-supplied (remainder is QUOTE), else SELL (BASE).
+    /// @return amountIn the uncrossed remainder in that side's deposit asset (0 if fully crossed).
+    function getUncrossedRemainder(uint256 _batchId) external view returns (bool sideBuy, uint256 amountIn) {
+        return _uncrossedRemainder(batches[_batchId]);
+    }
+
     // Compute the uncrossed (over-supplied) side of a settled batch and its remainder amount (in the
     // deposit asset of that side): buy side -> leftover QUOTE, sell side -> leftover BASE.
     function _uncrossedRemainder(Batch storage batch) internal view returns (bool sideBuy, uint256 amountIn) {
