@@ -50,8 +50,11 @@ const config: HardhatUserConfig = {
     // If the network you are looking for is not here you can add new network settings
     hardhat: {
       forking: {
-        url: `https://eth-mainnet.alchemyapi.io/v2/${providerApiKey}`,
+        url: `https://eth-mainnet.g.alchemy.com/v2/${providerApiKey}`,
         enabled: process.env.MAINNET_FORKING_ENABLED === "true",
+        // Pin the fork block (set MAINNET_FORK_BLOCK) for deterministic, reproducible fork tests
+        // and to avoid EDR panicking on a moving "latest" head.
+        blockNumber: process.env.MAINNET_FORK_BLOCK ? Number(process.env.MAINNET_FORK_BLOCK) : undefined,
       },
     },
     mainnet: {
