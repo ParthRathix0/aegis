@@ -26,6 +26,18 @@ interface IOracle {
         );
 }
 
+/// @notice Minimal interface to the 1inch Aqua router adapter (see AquaRouter.sol) used to fill the
+///         uncrossed batch remainder against 1inch Aqua/SwapVM.
+interface IAquaRouter {
+    function routeExactIn(
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 minOut,
+        bytes calldata aquaCalldata
+    ) external returns (uint256 amountOut);
+}
+
 contract AegisV4 is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -107,6 +119,14 @@ contract AegisV4 is Ownable, ReentrancyGuard {
         mapping(uint256 => OracleStats) oracleStats;  // oracleId => stats
     }
 
+    // 1inch Aqua routing result for a settled batch's uncrossed (over-supplied) remainder. Held in a
+    // separate mapping (not inside Batch) so the auto-generated `batches` getter stays unchanged.
+    struct AquaFill {
+        bool routed;      // set once routeUncrossedToAqua succeeds for this batch
+        bool sideBuy;     // true if the uncrossed side was BUY (quote in), else SELL (base in)
+        uint256 out;      // counter-asset received from Aqua, paid to the uncrossed side in claim()
+    }
+
     // ===== CONSTANTS =====
     uint256 public constant OPEN_DURATION = 50;           
     uint256 public constant ACCUMULATION_DURATION = 48;   
@@ -148,6 +168,10 @@ contract AegisV4 is Ownable, ReentrancyGuard {
     uint256 public lastCollectionBlock;
     uint256 public lastSettlementPrice; // For Circuit Breaker
 
+    // 1inch Aqua/SwapVM router adapter (owner-set); routes each settled batch's uncrossed remainder.
+    address public aquaRouter;
+    mapping(uint256 => AquaFill) public aquaFills; // batchId => Aqua routing result
+
     // ===== EVENTS =====
     event BatchCreated(uint256 indexed batchId, address asset, uint256 openEnd);
     event BatchStateChanged(uint256 indexed batchId, BatchState newState, uint256 endBlock);
@@ -159,6 +183,8 @@ contract AegisV4 is Ownable, ReentrancyGuard {
     event BatchSettled(uint256 indexed batchId, uint256 settlementPrice, uint256 buyFillRatio, uint256 sellFillRatio);
     event BatchVoided(uint256 indexed batchId, string reason);
     event Claimed(uint256 indexed batchId, address indexed user, uint256 filled, uint256 refunded);
+    event AquaRouterSet(address indexed router);
+    event UncrossedRouted(uint256 indexed batchId, bool sideBuy, uint256 amountIn, uint256 amountOut);
 
     // ===== CONSTRUCTOR =====
     constructor(address _baseAsset, address _quoteAsset) Ownable(msg.sender) {
@@ -425,6 +451,71 @@ contract AegisV4 is Ownable, ReentrancyGuard {
         _createBatch(batch.asset);
     }
 
+    // ===== 1inch AQUA ROUTING (uncrossed remainder) =====
+
+    /// @notice Set the 1inch Aqua router adapter (see AquaRouter.sol). Owner-only.
+    function setAquaRouter(address _router) external onlyOwner {
+        aquaRouter = _router;
+        emit AquaRouterSet(_router);
+    }
+
+    /// @notice Route a settled batch's uncrossed (over-supplied) remainder to 1inch Aqua/SwapVM so
+    ///         that side is filled at market instead of merely refunded its deposit. Callable once
+    ///         per settled batch by the Solver Agent, which supplies Aqua-SDK calldata + a minOut
+    ///         slippage floor built from a live Aqua quote.
+    /// @dev Only the uncrossed remainder (larger side minus the matched amount) is swapped; the
+    ///      matched leg and disputed refunds are untouched. The received counter-asset is escrowed
+    ///      in `batch.aquaOut` and paid pro-rata to the uncrossed side in claim() — preserving the
+    ///      contract's provable per-pull solvency (floors sum to <= aquaOut).
+    function routeUncrossedToAqua(uint256 _batchId, uint256 _minOut, bytes calldata _aquaCalldata) external {
+        require(aquaRouter != address(0), "Aqua router unset");
+        Batch storage batch = batches[_batchId];
+        require(batch.settlementPrice > 0, "Batch not settled");
+        AquaFill storage fill = aquaFills[_batchId];
+        require(!fill.routed, "Already routed");
+
+        (bool sideBuy, uint256 amountIn) = _uncrossedRemainder(batch);
+        require(amountIn > 0, "No uncrossed volume");
+
+        fill.routed = true; // effects before interaction
+        fill.sideBuy = sideBuy;
+
+        // Buy side over-supplied quote -> swap QUOTE->BASE; sell side -> swap BASE->QUOTE.
+        (address tokenIn, address tokenOut) = sideBuy ? (quoteAsset, baseAsset) : (baseAsset, quoteAsset);
+        uint256 out = _routeViaAqua(tokenIn, tokenOut, amountIn, _minOut, _aquaCalldata);
+        fill.out = out;
+        emit UncrossedRouted(_batchId, sideBuy, amountIn, out);
+    }
+
+    // Compute the uncrossed (over-supplied) side of a settled batch and its remainder amount (in the
+    // deposit asset of that side): buy side -> leftover QUOTE, sell side -> leftover BASE.
+    function _uncrossedRemainder(Batch storage batch) internal view returns (bool sideBuy, uint256 amountIn) {
+        uint256 netBuy = batch.buyVolume - batch.buyDisputedVolume;    // quote units
+        uint256 netSell = batch.sellVolume - batch.sellDisputedVolume; // base units
+        uint256 sellVolumeInQuote = _baseToQuote(netSell, batch.settlementPrice);
+        uint256 matchedQuote = netBuy < sellVolumeInQuote ? netBuy : sellVolumeInQuote;
+        if (netBuy > matchedQuote) return (true, netBuy - matchedQuote);
+        uint256 matchedBase = _quoteToBase(matchedQuote, batch.settlementPrice);
+        if (netSell > matchedBase) return (false, netSell - matchedBase);
+        return (false, 0);
+    }
+
+    function _routeViaAqua(
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 minOut,
+        bytes calldata data
+    ) internal returns (uint256) {
+        IERC20(tokenIn).forceApprove(aquaRouter, amountIn);
+        uint256 balBefore = IERC20(tokenOut).balanceOf(address(this));
+        IAquaRouter(aquaRouter).routeExactIn(tokenIn, tokenOut, amountIn, minOut, data);
+        uint256 delta = IERC20(tokenOut).balanceOf(address(this)) - balBefore;
+        require(delta >= minOut, "Aqua underfilled");
+        IERC20(tokenIn).forceApprove(aquaRouter, 0); // clear residual allowance
+        return delta;
+    }
+
     function _voidBatch(uint256 _batchId, string memory _reason) internal {
         Batch storage batch = batches[_batchId];
         batch.state = BatchState.OPEN; // Reuse OPEN as VOIDED state
@@ -450,8 +541,6 @@ contract AegisV4 is Ownable, ReentrancyGuard {
             return;
         }
 
-        uint256 price = batch.settlementPrice;
-
         // Provably-solvent per-pull pro-rata payout over NET (non-disputed) volume only.
         // Disputed orders already took the full-refund early-return above; their deposits are
         // reserved for that refund and MUST NOT be matched. Matching against gross volume would
@@ -461,37 +550,78 @@ contract AegisV4 is Ownable, ReentrancyGuard {
         // by construction, so no claim reverts for insolvency (rounding dust stays in the contract).
         uint256 netBuy = batch.buyVolume - batch.buyDisputedVolume;    // quote units
         uint256 netSell = batch.sellVolume - batch.sellDisputedVolume; // base units
-        uint256 sellVolumeInQuote = _baseToQuote(netSell, price);
-        uint256 matchedQuote = netBuy < sellVolumeInQuote ? netBuy : sellVolumeInQuote; // min
-        uint256 matchedBase = _quoteToBase(matchedQuote, price);
+        uint256 matchedQuote;
+        {
+            uint256 sellVolumeInQuote = _baseToQuote(netSell, batch.settlementPrice);
+            matchedQuote = netBuy < sellVolumeInQuote ? netBuy : sellVolumeInQuote; // min
+        }
+        uint256 matchedBase = _quoteToBase(matchedQuote, batch.settlementPrice);
 
         if (order.side == Side.BUY) {
-            // buyer deposited order.amount in QUOTE
-            if (netBuy == 0) {
-                // Whole non-disputed buy side is empty; full refund (avoids div-by-zero).
-                IERC20(quoteAsset).safeTransfer(msg.sender, order.amount);
-                emit Claimed(_batchId, msg.sender, 0, order.amount);
-                return;
-            }
-            uint256 baseOut = (order.amount * matchedBase) / netBuy; // base bought
-            uint256 quoteRefund = (order.amount * (netBuy - matchedQuote)) / netBuy; // unmatched quote back
-            if (baseOut > 0) IERC20(baseAsset).safeTransfer(msg.sender, baseOut);
-            if (quoteRefund > 0) IERC20(quoteAsset).safeTransfer(msg.sender, quoteRefund);
-            emit Claimed(_batchId, msg.sender, baseOut, quoteRefund);
+            _claimBuy(_batchId, order.amount, netBuy, matchedQuote, matchedBase);
         } else {
-            // seller deposited order.amount in BASE
-            if (netSell == 0) {
-                // Whole non-disputed sell side is empty; full refund (avoids div-by-zero).
-                IERC20(baseAsset).safeTransfer(msg.sender, order.amount);
-                emit Claimed(_batchId, msg.sender, 0, order.amount);
-                return;
-            }
-            uint256 quoteOut = (order.amount * matchedQuote) / netSell; // quote received
-            uint256 baseRefund = (order.amount * (netSell - matchedBase)) / netSell; // unmatched base back
-            if (quoteOut > 0) IERC20(quoteAsset).safeTransfer(msg.sender, quoteOut);
-            if (baseRefund > 0) IERC20(baseAsset).safeTransfer(msg.sender, baseRefund);
-            emit Claimed(_batchId, msg.sender, quoteOut, baseRefund);
+            _claimSell(_batchId, order.amount, netSell, matchedQuote, matchedBase);
         }
+    }
+
+    // buyer deposited `amount` in QUOTE; pays base for the matched leg + (Aqua fill | quote refund)
+    // for the uncrossed leg. Split out of claim() to keep the stack shallow.
+    function _claimBuy(
+        uint256 _batchId,
+        uint256 amount,
+        uint256 netBuy,
+        uint256 matchedQuote,
+        uint256 matchedBase
+    ) internal {
+        if (netBuy == 0) {
+            // Whole non-disputed buy side is empty; full refund (avoids div-by-zero).
+            IERC20(quoteAsset).safeTransfer(msg.sender, amount);
+            emit Claimed(_batchId, msg.sender, 0, amount);
+            return;
+        }
+        uint256 baseOut = (amount * matchedBase) / netBuy; // base bought (matched leg)
+        uint256 quoteRefund = (amount * (netBuy - matchedQuote)) / netBuy; // unmatched quote back
+        AquaFill storage fill = aquaFills[_batchId];
+        if (fill.routed && fill.sideBuy && netBuy > matchedQuote) {
+            // The uncrossed quote was routed to 1inch Aqua and swapped into base. Deliver this
+            // user's pro-rata share of that base (aquaOut * userUncrossed / totalUncrossed)
+            // instead of refunding quote — so the buy side is filled at market, not just refunded.
+            baseOut += (fill.out * quoteRefund) / (netBuy - matchedQuote);
+            quoteRefund = 0;
+        }
+        if (baseOut > 0) IERC20(baseAsset).safeTransfer(msg.sender, baseOut);
+        if (quoteRefund > 0) IERC20(quoteAsset).safeTransfer(msg.sender, quoteRefund);
+        emit Claimed(_batchId, msg.sender, baseOut, quoteRefund);
+    }
+
+    // seller deposited `amount` in BASE; pays quote for the matched leg + (Aqua fill | base refund)
+    // for the uncrossed leg.
+    function _claimSell(
+        uint256 _batchId,
+        uint256 amount,
+        uint256 netSell,
+        uint256 matchedQuote,
+        uint256 matchedBase
+    ) internal {
+        if (netSell == 0) {
+            // Whole non-disputed sell side is empty; full refund (avoids div-by-zero).
+            IERC20(baseAsset).safeTransfer(msg.sender, amount);
+            emit Claimed(_batchId, msg.sender, 0, amount);
+            return;
+        }
+        uint256 quoteOut = (amount * matchedQuote) / netSell; // quote received (matched leg)
+        uint256 baseRefund = (amount * (netSell - matchedBase)) / netSell; // unmatched base back
+        AquaFill storage fill = aquaFills[_batchId];
+        if (fill.routed && !fill.sideBuy && netSell > matchedBase) {
+            // The uncrossed base was routed to 1inch Aqua and swapped into quote. Deliver this
+            // user's pro-rata share of that quote instead of refunding base — so the sell side
+            // is filled at market, not just refunded.
+            quoteOut += (fill.out * baseRefund) / (netSell - matchedBase);
+            baseRefund = 0;
+        }
+        if (quoteOut > 0) IERC20(quoteAsset).safeTransfer(msg.sender, quoteOut);
+        if (baseRefund > 0) IERC20(baseAsset).safeTransfer(msg.sender, baseRefund);
+        emit Claimed(_batchId, msg.sender, quoteOut, baseRefund);
     }
 
     // ===== INTERNAL CALCULATIONS =====
