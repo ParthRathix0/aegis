@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "./lib/BatchAuction.sol";
 
 /**
  * @title Aegis Protocol V4.0 — Two-Asset Base/Quote Swap
@@ -789,12 +790,8 @@ contract AegisV4 is Ownable, ReentrancyGuard {
     }
 
     function _calculateFillRatio(uint256 _buyVolume, uint256 _sellVolume, bool _isBuy) internal pure returns (uint256) {
-        if (_buyVolume == 0 || _sellVolume == 0) return 0;
-        if (_isBuy) {
-            return _buyVolume <= _sellVolume ? PRECISION : (_sellVolume * PRECISION) / _buyVolume;
-        } else {
-            return _sellVolume <= _buyVolume ? PRECISION : (_buyVolume * PRECISION) / _sellVolume;
-        }
+        (uint256 buyRatio, uint256 sellRatio) = BatchAuction.fillRatios(_buyVolume, _sellVolume);
+        return _isBuy ? buyRatio : sellRatio;
     }
 
     // quoteAmount (6-dec) at price (8-dec, quote per base) -> baseAmount (18-dec)
