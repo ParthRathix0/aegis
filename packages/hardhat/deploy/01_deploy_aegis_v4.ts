@@ -6,11 +6,13 @@ import { DeployFunction } from "hardhat-deploy/types";
  *
  * Network branches:
  *   sepolia  — base=SEPOLIA_WETH (existing MockWETH or WETH), quote=SEPOLIA_USDC (Circle test USDC);
- *              registers real Chainlink (stack 1), PythOracleAdapter (stack 2), API3OracleAdapter (stack 3).
+ *              deploys FRESH Pyth + API3 adapters and registers real Chainlink (stack 1),
+ *              PythOracleAdapter (stack 2), API3OracleAdapter (stack 3).
  *   hardhat/localhost — deploys MockWETH + MockERC20(USDC) locally;
  *              deploys 2 MockOracles and registers them (stacks 1, 2) so validCount>=2 works locally.
  *
- * setMaxStaleness(7200) applied on all networks to accommodate real feed heartbeats.
+ * All networks: sets maxStaleness(7200) for real feed heartbeats, and deploys + wires an
+ * AquaRouter (1inch Aqua/SwapVM) via setAquaRouter for uncrossed-remainder routing.
  */
 const deployAegisV4: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
@@ -19,9 +21,13 @@ const deployAegisV4: DeployFunction = async function (hre: HardhatRuntimeEnviron
 
   // ── Sepolia constants ───────────────────────────────────────────────────────
   const SEPOLIA_USDC = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"; // Circle test USDC (6 dec)
-  const CHAINLINK_ETH_USD = "0x694AA1769357215DE4FAC081bf1f309aDC325306"; // 8 dec
-  const PYTH_ORACLE_ADAPTER = "0xDFdd46c593586028739E063204b8741bc3EF730D"; // deployed Plan 2
-  const API3_ORACLE_ADAPTER = "0x111ef8C8d0d9875194B3D630319327620C5c9996"; // deployed Plan 2
+  const CHAINLINK_ETH_USD = "0x694AA1769357215DE4FAC081bf1f309aDC325306"; // stack 1, 8 dec
+  // Fresh oracle adapters are deployed below (superseded Plan-2 throwaway addresses removed).
+  const PYTH_SEPOLIA = "0xDd24F84d36BF92C65F92307595335bdFab5Bbd21"; // Pyth contract (Sepolia)
+  const PYTH_ETH_USD_ID = "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace";
+  const API3_ETH_USD_PROXY = "0x5b0cf2b36a65a6BB085D501B971e4c102B9Cd473"; // API3 ETH/USD dAPI proxy (Sepolia)
+  // Official 1inch Aqua/SwapVM entrypoint. Re-verify against 1inch docs at live deploy.
+  const AQUA_SWAPVM = "0x111111338c5091E8440b67B168bAe16a668AC0De";
 
   console.log("\nDeploying Aegis V4.0 (two-asset swap)...\n");
   console.log(`Network: ${network}`);
@@ -76,18 +82,42 @@ const deployAegisV4: DeployFunction = async function (hre: HardhatRuntimeEnviron
   console.log("Setting maxStaleness = 7200s...");
   await (await aegis.setMaxStaleness(7200)).wait();
 
+  // ── 1inch Aqua router (uncrossed-remainder routing) ──────────────────────────
+  const aquaRouterDeploy = await deploy("AquaRouter", {
+    from: deployer,
+    args: [AQUA_SWAPVM],
+    log: true,
+    autoMine: true,
+  });
+  console.log(`AquaRouter deployed at: ${aquaRouterDeploy.address} (SwapVM: ${AQUA_SWAPVM})`);
+  console.log("Wiring AquaRouter into AegisV4 via setAquaRouter...");
+  await (await aegis.setAquaRouter(aquaRouterDeploy.address)).wait();
+
   // ── Oracle registration ─────────────────────────────────────────────────────
   if (network === "sepolia") {
-    console.log("Registering real oracles on Sepolia...");
+    console.log("Deploying fresh oracle adapters + registering real oracles on Sepolia...");
+
+    const pythAdapter = await deploy("PythOracleAdapter", {
+      from: deployer,
+      args: [PYTH_SEPOLIA, PYTH_ETH_USD_ID],
+      log: true,
+      autoMine: true,
+    });
+    const api3Adapter = await deploy("API3OracleAdapter", {
+      from: deployer,
+      args: [API3_ETH_USD_PROXY],
+      log: true,
+      autoMine: true,
+    });
 
     console.log(`  Registering Chainlink ETH/USD (stack 1): ${CHAINLINK_ETH_USD}`);
     await (await aegis.registerOracle(CHAINLINK_ETH_USD, 1)).wait();
 
-    console.log(`  Registering PythOracleAdapter (stack 2): ${PYTH_ORACLE_ADAPTER}`);
-    await (await aegis.registerOracle(PYTH_ORACLE_ADAPTER, 2)).wait();
+    console.log(`  Registering PythOracleAdapter (stack 2): ${pythAdapter.address}`);
+    await (await aegis.registerOracle(pythAdapter.address, 2)).wait();
 
-    console.log(`  Registering API3OracleAdapter (stack 3): ${API3_ORACLE_ADAPTER}`);
-    await (await aegis.registerOracle(API3_ORACLE_ADAPTER, 3)).wait();
+    console.log(`  Registering API3OracleAdapter (stack 3): ${api3Adapter.address}`);
+    await (await aegis.registerOracle(api3Adapter.address, 3)).wait();
 
     console.log("All 3 real oracles registered.");
   } else {
@@ -122,10 +152,11 @@ const deployAegisV4: DeployFunction = async function (hre: HardhatRuntimeEnviron
   console.log("AEGIS V4 DEPLOYMENT COMPLETE");
   console.log("=".repeat(70));
   console.log(`  AegisV4:    ${aegisV4Deploy.address}`);
+  console.log(`  AquaRouter: ${aquaRouterDeploy.address}`);
   console.log(`  baseAsset:  ${baseAddr}  (WETH)`);
   console.log(`  quoteAsset: ${quoteAddr}  (USDC)`);
   if (network === "sepolia") {
-    console.log(`  Oracles:    Chainlink(1) + Pyth(2) + API3(3)`);
+    console.log(`  Oracles:    Chainlink(1) + Pyth(2) + API3(3)  [fresh adapters]`);
   } else {
     console.log(`  Oracles:    MockOracleV4_1(1) + MockOracleV4_2(2)`);
   }
