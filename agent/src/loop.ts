@@ -1,8 +1,9 @@
 import "dotenv/config";
 import { ethers } from "ethers";
-import { decideAction, BatchState } from "./decide";
+import { decideAction, BatchState, CrankAction } from "./decide";
 import { fetchBatchPhase, phaseFromState } from "./subgraph";
 import { executeCrank } from "./executor";
+import { makeCircleClient, executeCrankViaCircle } from "./circle";
 
 // Minimal AegisV4 surface the agent needs: one view for the current batch
 // (id, state, endBlock, ...), the collection-block view, and the five
@@ -19,13 +20,18 @@ const ABI = [
 
 const TICK_MS = Number(process.env.TICK_MS ?? 12_000); // ~1 block
 
+// A crank executor: maps a decided action to an onchain call, returning a tx
+// hash / Circle tx id (or null for `wait`).
+type Executor = (a: CrankAction) => Promise<string | null>;
+
 async function tick(
   provider: ethers.Provider,
-  c: ethers.Contract,
+  readContract: ethers.Contract,
+  execute: Executor,
   subgraphUrl: string | undefined,
 ): Promise<void> {
-  const [batchId, stateRaw, endBlock] = await c.getCurrentBatchInfo();
-  const lastCollect = await c.lastCollectionBlock();
+  const [batchId, stateRaw, endBlock] = await readContract.getCurrentBatchInfo();
+  const lastCollect = await readContract.lastCollectionBlock();
   const block = await provider.getBlockNumber();
 
   // The subgraph is the agent's phase source (The Graph — load-bearing). When
@@ -43,31 +49,48 @@ async function tick(
   };
 
   const action = decideAction(state, block);
-  const hash = await executeCrank(c, action);
+  const ref = await execute(action);
   console.log(
     new Date().toISOString(),
     `batch=${state.batchId}`,
     phase,
     `block=${block}/${state.endBlock}`,
     action.kind,
-    hash ?? "",
+    ref ?? "",
   );
 }
 
 async function main() {
   const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
-  const wallet = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
-  const c = new ethers.Contract(process.env.AEGIS_ADDRESS!, ABI, wallet);
+  const aegisAddress = process.env.AEGIS_ADDRESS!;
+  const readContract = new ethers.Contract(aegisAddress, ABI, provider);
   const subgraphUrl = process.env.SUBGRAPH_URL || undefined;
 
+  // Writes go through the Circle Agent Stack wallet when configured (native
+  // USDC settlement on Arc); otherwise a raw key signs (local/dev smoke tests).
+  const useCircle = !!(process.env.CIRCLE_API_KEY && process.env.CIRCLE_WALLET_ID);
+  let execute: Executor;
+  let signer: string;
+  if (useCircle) {
+    const sdk = makeCircleClient();
+    const walletId = process.env.CIRCLE_WALLET_ID!;
+    execute = (a) => executeCrankViaCircle(sdk, walletId, aegisAddress, a);
+    signer = `circle:${process.env.CIRCLE_WALLET_ADDRESS ?? walletId}`;
+  } else {
+    const wallet = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
+    const writeContract = readContract.connect(wallet) as ethers.Contract;
+    execute = (a) => executeCrank(writeContract, a);
+    signer = wallet.address;
+  }
+
   console.log(
-    `Aegis Solver Agent — aegis=${process.env.AEGIS_ADDRESS} signer=${wallet.address} ` +
+    `Aegis Solver Agent — aegis=${aegisAddress} signer=${signer} ` +
       `subgraph=${subgraphUrl ?? "(contract fallback)"}`,
   );
 
   for (;;) {
     try {
-      await tick(provider, c, subgraphUrl);
+      await tick(provider, readContract, execute, subgraphUrl);
     } catch (e) {
       // Reverts (e.g. cranking too early against a lagged subgraph) are
       // expected and non-fatal — log and keep ticking.
