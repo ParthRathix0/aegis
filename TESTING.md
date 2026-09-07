@@ -11,7 +11,7 @@
 
 # Clone and install:
 git clone <repository-url>
-cd IIT-Trihacker-Finale
+cd aegis
 yarn install
 ```
 

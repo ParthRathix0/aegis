@@ -61,7 +61,7 @@ engine on Ethereum Sepolia — into an autonomous, real-oracle, real-two-asset s
   agentic-payments reframe (`AgentPaymentIntent`).
 
 ## Links
-- **Source code:** https://github.com/ParthRathix0/IIT-Trihacker-Finale (branch `ethonline`)
+- **Source code:** https://github.com/ParthRathix0/aegis (branch `ethonline`)
 - **Demo video:** ____
 - **Live AegisV4 (Sepolia, verified):** https://sepolia.etherscan.io/address/0x0a16364229EeFDA44332cB6D194E20937C51CE5b
 - **Subgraph (Studio query URL):** https://api.studio.thegraph.com/query/1758636/aegis-solver/v0.1.0

@@ -93,7 +93,7 @@
 ## 🗂️ File Locations
 
 ```
-IIT-Trihacker-Finale/
+aegis/
 ├── FRONTEND_QUICKSTART.md          ← Start here!
 ├── FRONTEND_IMPLEMENTATION.md       ← Implementation summary
 ├── FRONTEND_COMPLETE.md            ← Completion status

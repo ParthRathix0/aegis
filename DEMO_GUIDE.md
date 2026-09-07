@@ -185,7 +185,7 @@ Each phase has specific purpose - fully automated continuous operation.
 | Resource | Link |
 |----------|------|
 | **Sepolia Contract** | https://sepolia.etherscan.io/address/0xe8C3672A7348Fe8fF81814C42f1bf411D69C39b1 |
-| **GitHub Repo** | https://github.com/ParthRathix0/IIT-Trihacker-Finale |
+| **GitHub Repo** | https://github.com/ParthRathix0/aegis |
 | **Frontend** | http://localhost:3000 (when running) |
 
 ---

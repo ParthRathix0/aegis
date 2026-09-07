@@ -470,8 +470,8 @@ function getUserOrder(uint256 batchId, address user) returns (
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/ParthRathix0/IIT-Trihacker-Finale.git
-   cd IIT-Trihacker-Finale
+   git clone https://github.com/ParthRathix0/aegis.git
+   cd aegis
    ```
 
 2. **Install dependencies**
@@ -882,6 +882,6 @@ This project is licensed under the **MIT License** - see [LICENSE](LICENSE) file
 
 **Built with ❤️ for fair DeFi**
 
-[Documentation](https://docs.scaffoldeth.io) • [Website](https://scaffoldeth.io) • [GitHub](https://github.com/ParthRathix0/IIT-Trihacker-Finale)
+[Documentation](https://docs.scaffoldeth.io) • [Website](https://scaffoldeth.io) • [GitHub](https://github.com/ParthRathix0/aegis)
 
 </div>

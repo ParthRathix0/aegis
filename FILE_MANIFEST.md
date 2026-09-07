@@ -87,7 +87,7 @@ packages/nextjs/
 ## 🗂️ Directory Structure Created
 
 ```
-IIT-Trihacker-Finale/
+aegis/
 ├── FRONTEND_QUICKSTART.md
 ├── FRONTEND_IMPLEMENTATION.md
 ├── FRONTEND_COMPLETE.md
