@@ -37,6 +37,35 @@ describe("AegisV4 two-asset deposit", function () {
   });
 });
 
+describe("AegisV4 configurable phase durations", function () {
+  it("lets the owner tune durations for fast chains (e.g. Arc)", async function () {
+    const base = await erc20(18);
+    const quote = await erc20(6);
+    const V4 = await ethers.getContractFactory("AegisV4");
+    const aegis = await V4.deploy(await base.getAddress(), await quote.getAddress());
+
+    // Defaults preserved after the constant -> storage change.
+    expect(await aegis.ACCUMULATION_DURATION()).to.equal(48n);
+
+    await aegis.setPhaseDurations(100n, 400n, 150n, 150n);
+    expect(await aegis.OPEN_DURATION()).to.equal(100n);
+    expect(await aegis.ACCUMULATION_DURATION()).to.equal(400n);
+    expect(await aegis.DISPUTE_DURATION()).to.equal(150n);
+    expect(await aegis.SETTLING_DURATION()).to.equal(150n);
+  });
+
+  it("rejects non-owner and zero durations", async function () {
+    const [, stranger] = await ethers.getSigners();
+    const base = await erc20(18);
+    const quote = await erc20(6);
+    const V4 = await ethers.getContractFactory("AegisV4");
+    const aegis = await V4.deploy(await base.getAddress(), await quote.getAddress());
+
+    await expect(aegis.connect(stranger).setPhaseDurations(1n, 1n, 1n, 1n)).to.be.reverted;
+    await expect(aegis.setPhaseDurations(0n, 1n, 1n, 1n)).to.be.revertedWith("durations must be > 0");
+  });
+});
+
 // ===== Helper: deploy AegisV4 + 2 oracles at a given price =====
 async function deployV4WithOracles(price: bigint) {
   const base = await erc20(18);   // WETH 18-dec
