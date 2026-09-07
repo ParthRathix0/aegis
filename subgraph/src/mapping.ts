@@ -2,7 +2,7 @@ import { BigInt } from "@graphprotocol/graph-ts";
 import {
   BatchCreated, BatchStateChanged, Deposited, OraclePriceCollected,
   OracleWeightUpdated, BatchSettled, BatchVoided, Claimed,
-} from "../generated/AegisV3/AegisV3";
+} from "../generated/AegisV4/AegisV4";
 import { Batch, Order, OracleObservation, OracleWeight, Settlement } from "../generated/schema";
 
 export function handleBatchCreated(e: BatchCreated): void {

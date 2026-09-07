@@ -3,12 +3,12 @@ schema:
   file: ./schema.graphql
 dataSources:
   - kind: ethereum
-    name: AegisV3
+    name: AegisV4
     network: sepolia
     source:
-      address: "0xA514727e7EC43F6a99ceB11F25df36c922e040Ad"
-      abi: AegisV3
-      startBlock: 11633919
+      address: "0x0a16364229EeFDA44332cB6D194E20937C51CE5b"
+      abi: AegisV4
+      startBlock: 11654395
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -20,8 +20,8 @@ dataSources:
         - OracleWeight
         - Settlement
       abis:
-        - name: AegisV3
-          file: ./abis/AegisV3.json
+        - name: AegisV4
+          file: ./abis/AegisV4.json
       eventHandlers:
         - event: BatchCreated(indexed uint256,address,uint256)
           handler: handleBatchCreated
