@@ -65,6 +65,13 @@ const config: HardhatUserConfig = {
       url: `https://eth-sepolia.g.alchemy.com/v2/${providerApiKey}`,
       accounts: [deployerPrivateKey],
     },
+    arc: {
+      // Circle Arc public testnet — USDC is the native gas token (18 dec) and
+      // also exposes a 6-dec ERC-20 at 0x3600...0000 used as the quote asset.
+      url: "https://rpc.testnet.arc.io",
+      chainId: 5042002,
+      accounts: [deployerPrivateKey],
+    },
     arbitrum: {
       url: `https://arb-mainnet.g.alchemy.com/v2/${providerApiKey}`,
       accounts: [deployerPrivateKey],
