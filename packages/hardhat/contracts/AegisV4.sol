@@ -128,10 +128,13 @@ contract AegisV4 is Ownable, ReentrancyGuard {
     }
 
     // ===== CONSTANTS =====
-    uint256 public constant OPEN_DURATION = 50;           
-    uint256 public constant ACCUMULATION_DURATION = 48;   
-    uint256 public constant DISPUTE_DURATION = 15;        
-    uint256 public constant SETTLING_DURATION = 10;       
+    // Phase durations in blocks. Configurable (owner) so the same protocol works
+    // on chains with very different block times — e.g. Arc's sub-second blocks
+    // need far larger block counts to give agents a usable deposit/settle window.
+    uint256 public OPEN_DURATION = 50;
+    uint256 public ACCUMULATION_DURATION = 48;
+    uint256 public DISPUTE_DURATION = 15;
+    uint256 public SETTLING_DURATION = 10;
     
     uint256 public constant COLLECTION_INTERVAL = 4;      
     uint256 public constant MAX_PRICE_DEVIATION = 10;     // 10% max deviation filter
@@ -233,6 +236,20 @@ contract AegisV4 is Ownable, ReentrancyGuard {
     function setMaxStaleness(uint256 _seconds) external onlyOwner {
         require(_seconds > 0, "Staleness must be > 0");
         maxStaleness = _seconds;
+    }
+
+    // Tune phase durations (in blocks) to the host chain's block time. Applies to
+    // the next phase transitions / batches, so agents get a usable window on fast
+    // chains (e.g. Arc). Does not retroactively change an already-set phase end.
+    function setPhaseDurations(uint256 _open, uint256 _acc, uint256 _dispute, uint256 _settling)
+        external
+        onlyOwner
+    {
+        require(_open > 0 && _acc > 0 && _dispute > 0 && _settling > 0, "durations must be > 0");
+        OPEN_DURATION = _open;
+        ACCUMULATION_DURATION = _acc;
+        DISPUTE_DURATION = _dispute;
+        SETTLING_DURATION = _settling;
     }
 
     function activateOracle(uint256 _oracleId) external onlyOwner {
