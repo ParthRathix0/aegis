@@ -1,0 +1,352 @@
+{
+  "address": "0xc3496535eE0B65F27BF42984ef1235A1FEC72a7B",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "int256",
+          "name": "_initialPrice",
+          "type": "int256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "int256",
+          "name": "newPrice",
+          "type": "int256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        }
+      ],
+      "name": "PriceUpdated",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "isVolatile",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "latestRoundData",
+      "outputs": [
+        {
+          "internalType": "uint80",
+          "name": "_roundId",
+          "type": "uint80"
+        },
+        {
+          "internalType": "int256",
+          "name": "answer",
+          "type": "int256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "startedAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_updatedAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint80",
+          "name": "answeredInRound",
+          "type": "uint80"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "price",
+      "outputs": [
+        {
+          "internalType": "int256",
+          "name": "",
+          "type": "int256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "priceDeviation",
+      "outputs": [
+        {
+          "internalType": "int256",
+          "name": "",
+          "type": "int256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "roundId",
+      "outputs": [
+        {
+          "internalType": "uint80",
+          "name": "",
+          "type": "uint80"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "int256",
+          "name": "_deviationBps",
+          "type": "int256"
+        }
+      ],
+      "name": "setDeviation",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "int256",
+          "name": "_newPrice",
+          "type": "int256"
+        }
+      ],
+      "name": "setPrice",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bool",
+          "name": "_volatile",
+          "type": "bool"
+        }
+      ],
+      "name": "setVolatile",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "int256",
+          "name": "_crashPercent",
+          "type": "int256"
+        }
+      ],
+      "name": "simulateCrash",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "int256",
+          "name": "_pumpPercent",
+          "type": "int256"
+        }
+      ],
+      "name": "simulatePump",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "updatedAt",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0xa9feca94400f432102f959ffafed2d4ee60276bf2be71cec30dbb6abfc8a3a13",
+  "receipt": {
+    "to": null,
+    "from": "0x9277b998c1887D5F01ad614a504119Cd9E2330b6",
+    "contractAddress": "0xc3496535eE0B65F27BF42984ef1235A1FEC72a7B",
+    "transactionIndex": 5,
+    "gasUsed": "505045",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0x934f97cf99b1c7b62f9d5f7225b4fd20df9a5dc67c53caa51482184eafbc4cc0",
+    "transactionHash": "0xa9feca94400f432102f959ffafed2d4ee60276bf2be71cec30dbb6abfc8a3a13",
+    "logs": [],
+    "blockNumber": 60952284,
+    "cumulativeGasUsed": "2449177",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    200000000000
+  ],
+  "numDeployments": 1,
+  "solcInputHash": "2702674e91ba8c27b270ab04af6a6283",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.20+commit.a1b79de6\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"int256\",\"name\":\"_initialPrice\",\"type\":\"int256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"newPrice\",\"type\":\"int256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"timestamp\",\"type\":\"uint256\"}],\"name\":\"PriceUpdated\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"isVolatile\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestRoundData\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"_roundId\",\"type\":\"uint80\"},{\"internalType\":\"int256\",\"name\":\"answer\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_updatedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint80\",\"name\":\"answeredInRound\",\"type\":\"uint80\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"price\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"priceDeviation\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"roundId\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"\",\"type\":\"uint80\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"int256\",\"name\":\"_deviationBps\",\"type\":\"int256\"}],\"name\":\"setDeviation\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"int256\",\"name\":\"_newPrice\",\"type\":\"int256\"}],\"name\":\"setPrice\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bool\",\"name\":\"_volatile\",\"type\":\"bool\"}],\"name\":\"setVolatile\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"int256\",\"name\":\"_crashPercent\",\"type\":\"int256\"}],\"name\":\"simulateCrash\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"int256\",\"name\":\"_pumpPercent\",\"type\":\"int256\"}],\"name\":\"simulatePump\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"updatedAt\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"details\":\"Implements IOracle interface with configurable price manipulation\",\"kind\":\"dev\",\"methods\":{\"setDeviation(int256)\":{\"params\":{\"_deviationBps\":\"Deviation in basis points (e.g., 1000 = +10%)\"}}},\"title\":\"MockOracle\",\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{\"latestRoundData()\":{\"notice\":\"Chainlink-compatible interface\"},\"setDeviation(int256)\":{\"notice\":\"Set systematic deviation (for testing malicious oracles)\"},\"setPrice(int256)\":{\"notice\":\"Update base price\"},\"setVolatile(bool)\":{\"notice\":\"Toggle volatility (for testing precision penalties)\"},\"simulateCrash(int256)\":{\"notice\":\"Simulate price crash\"},\"simulatePump(int256)\":{\"notice\":\"Simulate price pump\"}},\"notice\":\"Simple mock oracle for testing Aegis V3.0\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/mocks/MockOracle.sol\":\"MockOracle\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"contracts/mocks/MockOracle.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.0;\\n\\n/**\\n * @title MockOracle\\n * @notice Simple mock oracle for testing Aegis V3.0\\n * @dev Implements IOracle interface with configurable price manipulation\\n */\\ncontract MockOracle {\\n    int256 public price;\\n    uint256 public updatedAt;\\n    uint80 public roundId;\\n    \\n    address public owner;\\n    int256 public priceDeviation; // Percentage deviation to simulate (basis points)\\n    bool public isVolatile;       // If true, adds random variance\\n    \\n    event PriceUpdated(int256 newPrice, uint256 timestamp);\\n    \\n    constructor(int256 _initialPrice) {\\n        owner = msg.sender;\\n        price = _initialPrice;\\n        updatedAt = block.timestamp;\\n        roundId = 1;\\n    }\\n    \\n    modifier onlyOwner() {\\n        require(msg.sender == owner, \\\"Not owner\\\");\\n        _;\\n    }\\n    \\n    /**\\n     * @notice Chainlink-compatible interface\\n     */\\n    function latestRoundData()\\n        external\\n        view\\n        returns (\\n            uint80 _roundId,\\n            int256 answer,\\n            uint256 startedAt,\\n            uint256 _updatedAt,\\n            uint80 answeredInRound\\n        )\\n    {\\n        int256 adjustedPrice = price;\\n        \\n        // Apply deviation if set\\n        if (priceDeviation != 0) {\\n            adjustedPrice = (price * (10000 + priceDeviation)) / 10000;\\n        }\\n        \\n        // Add volatility if enabled\\n        if (isVolatile) {\\n            // Simple pseudo-random variance \\u00b13%\\n            uint256 variance = uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao))) % 600;\\n            int256 adjustment = int256(variance) - 300; // -300 to +300 basis points\\n            adjustedPrice = (adjustedPrice * (10000 + adjustment)) / 10000;\\n        }\\n        \\n        return (\\n            roundId,\\n            adjustedPrice,\\n            updatedAt,\\n            updatedAt,\\n            roundId\\n        );\\n    }\\n    \\n    /**\\n     * @notice Update base price\\n     */\\n    function setPrice(int256 _newPrice) external onlyOwner {\\n        price = _newPrice;\\n        updatedAt = block.timestamp;\\n        roundId++;\\n        emit PriceUpdated(_newPrice, block.timestamp);\\n    }\\n    \\n    /**\\n     * @notice Set systematic deviation (for testing malicious oracles)\\n     * @param _deviationBps Deviation in basis points (e.g., 1000 = +10%)\\n     */\\n    function setDeviation(int256 _deviationBps) external onlyOwner {\\n        priceDeviation = _deviationBps;\\n    }\\n    \\n    /**\\n     * @notice Toggle volatility (for testing precision penalties)\\n     */\\n    function setVolatile(bool _volatile) external onlyOwner {\\n        isVolatile = _volatile;\\n    }\\n    \\n    /**\\n     * @notice Simulate price crash\\n     */\\n    function simulateCrash(int256 _crashPercent) external onlyOwner {\\n        price = (price * (100 - _crashPercent)) / 100;\\n        updatedAt = block.timestamp;\\n        roundId++;\\n        emit PriceUpdated(price, block.timestamp);\\n    }\\n    \\n    /**\\n     * @notice Simulate price pump\\n     */\\n    function simulatePump(int256 _pumpPercent) external onlyOwner {\\n        price = (price * (100 + _pumpPercent)) / 100;\\n        updatedAt = block.timestamp;\\n        roundId++;\\n        emit PriceUpdated(price, block.timestamp);\\n    }\\n}\\n\",\"keccak256\":\"0xbad9186fae9861326edc1f29689a062ee8e731cf1452cbb1a1f709db988d8da6\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x608060405234801561001057600080fd5b5060405161078538038061078583398101604081905261002f9161006e565b600280546000929092554260019081556001600160f01b0319909216336a0100000000000000000000026001600160501b031916179091179055610087565b60006020828403121561008057600080fd5b5051919050565b6106ef806100966000396000f3fe608060405234801561001057600080fd5b50600436106100b45760003560e01c80638da5cb5b116100715780638da5cb5b1461014e578063a035b1fe14610180578063c4566a4814610189578063ca40faac1461019c578063f7a30806146101af578063feaf968c146101c257600080fd5b80632488c044146100b95780635000de99146100db5780637519ab50146100f05780637773168f146101075780637944afe9146101105780638cd221c914610123575b600080fd5b6004546100c69060ff1681565b60405190151581526020015b60405180910390f35b6100ee6100e936600461053b565b6101fe565b005b6100f960015481565b6040519081526020016100d2565b6100f960035481565b6100ee61011e366004610554565b61023d565b600254610136906001600160501b031681565b6040516001600160501b0390911681526020016100d2565b60025461016890600160501b90046001600160a01b031681565b6040516001600160a01b0390911681526020016100d2565b6100f960005481565b6100ee61019736600461053b565b610281565b6100ee6101aa36600461053b565b610361565b6100ee6101bd36600461053b565b61039e565b6101ca61044e565b604080516001600160501b03968716815260208101959095528401929092526060830152909116608082015260a0016100d2565b600254600160501b90046001600160a01b031633146102385760405162461bcd60e51b815260040161022f9061057d565b60405180910390fd5b600355565b600254600160501b90046001600160a01b0316331461026e5760405162461bcd60e51b815260040161022f9061057d565b6004805460ff1916911515919091179055565b600254600160501b90046001600160a01b031633146102b25760405162461bcd60e51b815260040161022f9061057d565b60646102be82826105b6565b6000546102cb91906105de565b6102d5919061062a565b600090815542600155600280546001600160501b0316916102f583610658565b91906101000a8154816001600160501b0302191690836001600160501b03160217905550507fdb6fb3cf4cc5fb760bcd63b958a53b2396776dff32c063188e864296541e76bd60005442604051610356929190918252602082015260400190565b60405180910390a150565b600254600160501b90046001600160a01b031633146103925760405162461bcd60e51b815260040161022f9061057d565b60646102be828261067e565b600254600160501b90046001600160a01b031633146103cf5760405162461bcd60e51b815260040161022f9061057d565b600081815542600155600280546001600160501b0316916103ef83610658565b91906101000a8154816001600160501b0302191690836001600160501b03160217905550507fdb6fb3cf4cc5fb760bcd63b958a53b2396776dff32c063188e864296541e76bd8142604051610356929190918252602082015260400190565b60008060008060008060005490506003546000146104935761271060035461271061047991906105b6565b60005461048691906105de565b610490919061062a565b90505b60045460ff161561051a57600061025842446040516020016104bf929190918252602082015260400190565b6040516020818303038152906040528051906020012060001c6104e291906106a5565b905060006104f261012c8361067e565b905061271061050182826105b6565b61050b90856105de565b610515919061062a565b925050505b6002546001546001600160501b039091169791965094508493508692509050565b60006020828403121561054d57600080fd5b5035919050565b60006020828403121561056657600080fd5b8135801515811461057657600080fd5b9392505050565b6020808252600990820152682737ba1037bbb732b960b91b604082015260600190565b634e487b7160e01b600052601160045260246000fd5b80820182811260008312801582168215821617156105d6576105d66105a0565b505092915050565b80820260008212600160ff1b841416156105fa576105fa6105a0565b818105831482151761060e5761060e6105a0565b92915050565b634e487b7160e01b600052601260045260246000fd5b60008261063957610639610614565b600160ff1b821460001984141615610653576106536105a0565b500590565b60006001600160501b03808316818103610674576106746105a0565b6001019392505050565b818103600083128015838313168383128216171561069e5761069e6105a0565b5092915050565b6000826106b4576106b4610614565b50069056fea2646970667358221220ac0701c1e8e91072972647945ce5c5fe4f38232a6f2b427360c06c103dad951964736f6c63430008140033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106100b45760003560e01c80638da5cb5b116100715780638da5cb5b1461014e578063a035b1fe14610180578063c4566a4814610189578063ca40faac1461019c578063f7a30806146101af578063feaf968c146101c257600080fd5b80632488c044146100b95780635000de99146100db5780637519ab50146100f05780637773168f146101075780637944afe9146101105780638cd221c914610123575b600080fd5b6004546100c69060ff1681565b60405190151581526020015b60405180910390f35b6100ee6100e936600461053b565b6101fe565b005b6100f960015481565b6040519081526020016100d2565b6100f960035481565b6100ee61011e366004610554565b61023d565b600254610136906001600160501b031681565b6040516001600160501b0390911681526020016100d2565b60025461016890600160501b90046001600160a01b031681565b6040516001600160a01b0390911681526020016100d2565b6100f960005481565b6100ee61019736600461053b565b610281565b6100ee6101aa36600461053b565b610361565b6100ee6101bd36600461053b565b61039e565b6101ca61044e565b604080516001600160501b03968716815260208101959095528401929092526060830152909116608082015260a0016100d2565b600254600160501b90046001600160a01b031633146102385760405162461bcd60e51b815260040161022f9061057d565b60405180910390fd5b600355565b600254600160501b90046001600160a01b0316331461026e5760405162461bcd60e51b815260040161022f9061057d565b6004805460ff1916911515919091179055565b600254600160501b90046001600160a01b031633146102b25760405162461bcd60e51b815260040161022f9061057d565b60646102be82826105b6565b6000546102cb91906105de565b6102d5919061062a565b600090815542600155600280546001600160501b0316916102f583610658565b91906101000a8154816001600160501b0302191690836001600160501b03160217905550507fdb6fb3cf4cc5fb760bcd63b958a53b2396776dff32c063188e864296541e76bd60005442604051610356929190918252602082015260400190565b60405180910390a150565b600254600160501b90046001600160a01b031633146103925760405162461bcd60e51b815260040161022f9061057d565b60646102be828261067e565b600254600160501b90046001600160a01b031633146103cf5760405162461bcd60e51b815260040161022f9061057d565b600081815542600155600280546001600160501b0316916103ef83610658565b91906101000a8154816001600160501b0302191690836001600160501b03160217905550507fdb6fb3cf4cc5fb760bcd63b958a53b2396776dff32c063188e864296541e76bd8142604051610356929190918252602082015260400190565b60008060008060008060005490506003546000146104935761271060035461271061047991906105b6565b60005461048691906105de565b610490919061062a565b90505b60045460ff161561051a57600061025842446040516020016104bf929190918252602082015260400190565b6040516020818303038152906040528051906020012060001c6104e291906106a5565b905060006104f261012c8361067e565b905061271061050182826105b6565b61050b90856105de565b610515919061062a565b925050505b6002546001546001600160501b039091169791965094508493508692509050565b60006020828403121561054d57600080fd5b5035919050565b60006020828403121561056657600080fd5b8135801515811461057657600080fd5b9392505050565b6020808252600990820152682737ba1037bbb732b960b91b604082015260600190565b634e487b7160e01b600052601160045260246000fd5b80820182811260008312801582168215821617156105d6576105d66105a0565b505092915050565b80820260008212600160ff1b841416156105fa576105fa6105a0565b818105831482151761060e5761060e6105a0565b92915050565b634e487b7160e01b600052601260045260246000fd5b60008261063957610639610614565b600160ff1b821460001984141615610653576106536105a0565b500590565b60006001600160501b03808316818103610674576106746105a0565b6001019392505050565b818103600083128015838313168383128216171561069e5761069e6105a0565b5092915050565b6000826106b4576106b4610614565b50069056fea2646970667358221220ac0701c1e8e91072972647945ce5c5fe4f38232a6f2b427360c06c103dad951964736f6c63430008140033",
+  "devdoc": {
+    "details": "Implements IOracle interface with configurable price manipulation",
+    "kind": "dev",
+    "methods": {
+      "setDeviation(int256)": {
+        "params": {
+          "_deviationBps": "Deviation in basis points (e.g., 1000 = +10%)"
+        }
+      }
+    },
+    "title": "MockOracle",
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {
+      "latestRoundData()": {
+        "notice": "Chainlink-compatible interface"
+      },
+      "setDeviation(int256)": {
+        "notice": "Set systematic deviation (for testing malicious oracles)"
+      },
+      "setPrice(int256)": {
+        "notice": "Update base price"
+      },
+      "setVolatile(bool)": {
+        "notice": "Toggle volatility (for testing precision penalties)"
+      },
+      "simulateCrash(int256)": {
+        "notice": "Simulate price crash"
+      },
+      "simulatePump(int256)": {
+        "notice": "Simulate price pump"
+      }
+    },
+    "notice": "Simple mock oracle for testing Aegis V3.0",
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 4778,
+        "contract": "contracts/mocks/MockOracle.sol:MockOracle",
+        "label": "price",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_int256"
+      },
+      {
+        "astId": 4780,
+        "contract": "contracts/mocks/MockOracle.sol:MockOracle",
+        "label": "updatedAt",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_uint256"
+      },
+      {
+        "astId": 4782,
+        "contract": "contracts/mocks/MockOracle.sol:MockOracle",
+        "label": "roundId",
+        "offset": 0,
+        "slot": "2",
+        "type": "t_uint80"
+      },
+      {
+        "astId": 4784,
+        "contract": "contracts/mocks/MockOracle.sol:MockOracle",
+        "label": "owner",
+        "offset": 10,
+        "slot": "2",
+        "type": "t_address"
+      },
+      {
+        "astId": 4786,
+        "contract": "contracts/mocks/MockOracle.sol:MockOracle",
+        "label": "priceDeviation",
+        "offset": 0,
+        "slot": "3",
+        "type": "t_int256"
+      },
+      {
+        "astId": 4788,
+        "contract": "contracts/mocks/MockOracle.sol:MockOracle",
+        "label": "isVolatile",
+        "offset": 0,
+        "slot": "4",
+        "type": "t_bool"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_bool": {
+        "encoding": "inplace",
+        "label": "bool",
+        "numberOfBytes": "1"
+      },
+      "t_int256": {
+        "encoding": "inplace",
+        "label": "int256",
+        "numberOfBytes": "32"
+      },
+      "t_uint256": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      },
+      "t_uint80": {
+        "encoding": "inplace",
+        "label": "uint80",
+        "numberOfBytes": "10"
+      }
+    }
+  }
+}
