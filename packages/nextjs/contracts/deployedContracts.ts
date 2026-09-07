@@ -2394,7 +2394,7 @@ const deployedContracts = {
   },
   5042002: {
     AegisV4: {
-      address: "0x1A4Ebe2C02CE8Ad63838668C0D45cF3B266dA20f",
+      address: "0xf520B2eE9AD41BA0AD1Ba313ce25dfa0f1361fB8",
       abi: [
         {
           inputs: [
@@ -3748,6 +3748,34 @@ const deployedContracts = {
           type: "function",
         },
         {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "_open",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "_acc",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "_dispute",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "_settling",
+              type: "uint256",
+            },
+          ],
+          name: "setPhaseDurations",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
           inputs: [],
           name: "startAccumulation",
           outputs: [],
@@ -3787,7 +3815,7 @@ const deployedContracts = {
         renounceOwnership: "@openzeppelin/contracts/access/Ownable.sol",
         transferOwnership: "@openzeppelin/contracts/access/Ownable.sol",
       },
-      deployedOnBlock: 60952265,
+      deployedOnBlock: 60953840,
     },
     AquaRouter: {
       address: "0x09D0504a067c0D11Af8326ce2Dec86cB8417Edb6",
