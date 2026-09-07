@@ -1,15 +1,84 @@
 # 🛡️ Aegis — Secure Settlement Infrastructure for Agentic Payments
 
-> **ETHOnline 2026 · Continuity Track.** This repository extends **Aegis V3** — the live, verified
-> MEV-resistant batch-settlement engine documented below — into the **safe-execution layer for
-> agentic payments.** Autonomous agents submit a *payment intent* and Aegis settles it at one fair,
-> uniform, front-run-proof clearing price: priced from **Chainlink + Pyth + API3**, driven by an
-> autonomous agent on the **Circle stack**, settled in **native USDC on Arc**, with **1inch Aqua**
-> as the overflow venue and **The Graph** as the agent's live data source.
->
-> Everyone is racing to give agents wallets. Aegis is the infrastructure that keeps them from getting
-> robbed when they spend. Full hackathon spec: [`../idea.md`](../idea.md). The autonomous Solver Agent:
-> [`agent/`](./agent). **Everything below documents the pre-existing Aegis V3 base we build on.**
+> **ETHOnline 2026 · Continuity Track.** Extending the live, verified **Aegis V3** MEV-resistant
+> batch-settlement engine into the **safe-execution layer for agentic payments** — the rails that
+> keep autonomous agents from getting front-run or price-manipulated when they move value on-chain.
+
+**Everyone is racing to give agents wallets. Nobody is making sure agents don't get robbed when they spend.**
+An autonomous agent's on-chain moves are predictable and mempool-visible — a perfect sandwich and
+oracle-manipulation target. Aegis is the guardrail layer: an agent submits a **payment intent**, and
+Aegis settles it in a **batch at one uniform clearing price** (nothing to front-run), priced from
+**multiple independent oracles** (nothing to manipulate), driven **end-to-end by an autonomous agent**
+on the **Circle Agent Stack**, settling in **native USDC** — zero human in the loop.
+
+## 🔗 Live deployments & proof
+
+| | Address / link |
+|---|---|
+| **AegisV4 — Ethereum Sepolia** (verified) | [`0x0a16…CE5b`](https://sepolia.etherscan.io/address/0x0a16364229EeFDA44332cB6D194E20937C51CE5b) |
+| **AegisV4 — Circle Arc testnet** | [`0xf520…1fB8`](https://testnet.arcscan.app/address/0xf520B2eE9AD41BA0AD1Ba313ce25dfa0f1361fB8) |
+| **The Graph subgraph** (live) | [studio query endpoint](https://api.studio.thegraph.com/query/1758636/aegis-solver/v0.1.0) |
+| **Autonomous Solver Agent** | [`agent/`](./agent) |
+
+**A real, autonomous, agent-driven USDC settlement — verified on both chains** (5 USDC settled agent → counterparty, zero human calls):
+- **Arc** (native USDC): Circle deposit [`0xad1ac733`](https://testnet.arcscan.app/tx/0xad1ac7330a0e7a2d829b859ae79d2b9b1a276663573ccbf06d80883b76a0b2c3) → executeSettlement [`0x614475f5`](https://testnet.arcscan.app/tx/0x614475f587a64653c209660a25ee7bc875a5fd11280e66253ad2236f282d49c9) → seller receives 5 USDC [`0xd83380f5`](https://testnet.arcscan.app/tx/0xd83380f55f3c74766d637299f98cadd435844403a079eb223d0044dd4fd2dee1)
+- **Sepolia** (real Chainlink + API3 feeds): executeSettlement [`0xdaebdf49`](https://sepolia.etherscan.io/tx/0xdaebdf494e0d091c1fc83adfa5253869ea9ac5d98d6d560f7463d5ef8eac014e) → seller receives USDC [`0x6607b899`](https://sepolia.etherscan.io/tx/0x6607b899b6851cb027d1b017b83098bdfcb49e00a38b89f65b203f392e05e9bc)
+- Full tx sets: [`agent/settlement-evidence.arc.json`](./agent/settlement-evidence.arc.json) · [`agent/settlement-evidence.sepolia.json`](./agent/settlement-evidence.sepolia.json)
+
+## 🏆 Sponsor integrations (all load-bearing, not decorative)
+
+| Sponsor | How Aegis genuinely uses it |
+|---|---|
+| **The Graph** | The agent's live data source **and decision input**: it reads historical oracle-reliability analytics from the subgraph and **refuses to commit funds unless enough oracles have been reliably valid** (preventing a void). The agent reasons over Graph data — remove it and the agent is blind. [`subgraph/`](./subgraph) · [`agent/src/analytics.ts`](./agent/src/analytics.ts) |
+| **Circle / Arc** | The solver runs on the **Circle Agent Stack** (developer-controlled wallet) and settles in **native USDC on Arc** — where USDC is the gas token, so the agent operates 100% in USDC (no separate gas asset). [`agent/src/circle.ts`](./agent/src/circle.ts) |
+| **Chainlink** | A real **Chainlink ETH/USD Data Feed** (+ Pyth, API3 adapters) drives the on-chain settlement clearing price — a genuine state change that replaced the pre-existing mock oracles. |
+
+## 🧠 How it works
+
+```
+ USERS / AGENTS submit intents (BUY/SELL) ─► Aegis batch (on-chain)
+                                              │
+                                   ┌──────────▼───────────┐
+                                   │   SOLVER AGENT       │  (Circle Agent Stack)
+                                   │  drives the 4-phase crank end-to-end:
+                                   │  1. read batch + oracle-health from The Graph
+                                   │  2. collectOraclePrices() from real feeds
+                                   │  3. compute fair uniform clearing price
+                                   │  4. match internally at one price
+                                   │  5. executeSettlement() on-chain
+                                   └──────────┬───────────┘
+                                              │
+                          settle two-asset swap in native USDC (Arc)
+                                              │
+                                    users receive fair fills
+```
+
+The 4-phase lifecycle (`OPEN → ACCUMULATING → DISPUTING → SETTLING`) is **permissionless** — the
+agent drives every transition. Phase durations are owner-configurable so the protocol works on both
+Ethereum (~12s blocks) and fast L1s like Arc (~0.56s blocks).
+
+## 🧬 Continuity disclosure (pre-existing vs. hackathon work)
+
+- **Pre-existing:** Aegis V3 — live & verified on Sepolia ([`0xe8C3…39b1`](https://sepolia.etherscan.io/address/0xe8C3672A7348Fe8fF81814C42f1bf411D69C39b1)). `contracts/AegisV3.sol` is **untouched** as continuity evidence.
+- **New this hackathon** (branch `ethonline`, granular commit history): `AegisV4` real two-asset swap; real Chainlink/Pyth/API3 feeds; **The Graph** subgraph + agent oracle-health analytics; the autonomous **Solver Agent** on the **Circle Agent Stack** settling **native USDC on Arc**; configurable phase durations for fast L1s; `AgentPaymentIntent` adapter.
+
+## 🗂 Repository layout
+
+- [`packages/hardhat`](./packages/hardhat) — contracts (`AegisV4.sol`), Hardhat tests, deploy scripts
+- [`subgraph`](./subgraph) — The Graph subgraph (indexes batches/orders/oracle observations/settlements)
+- [`agent`](./agent) — the autonomous Solver Agent (TypeScript + Vitest)
+
+## ▶️ Quick start
+
+```bash
+yarn install
+# Contracts (from packages/hardhat)
+yarn test                       # Hardhat + Mocha/Chai
+# Agent (from agent/)
+yarn test                       # Vitest
+cp .env.example .env            # fill RPC + Circle creds, then:
+yarn start                      # runs the autonomous solver crank loop
+```
 
 ---
 
