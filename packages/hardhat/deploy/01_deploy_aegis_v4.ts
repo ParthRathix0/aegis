@@ -79,8 +79,10 @@ const deployAegisV4: DeployFunction = async function (hre: HardhatRuntimeEnviron
   // ── Post-deploy configuration ───────────────────────────────────────────────
   const aegis = await hre.ethers.getContractAt("AegisV4", aegisV4Deploy.address);
 
-  console.log("Setting maxStaleness = 7200s...");
-  await (await aegis.setMaxStaleness(7200)).wait();
+  // 24h: Sepolia's API3/Pyth dAPIs update on a slow testnet cadence; a tight
+  // window leaves only Chainlink fresh (< 2 valid oracles → batch voids).
+  console.log("Setting maxStaleness = 86400s...");
+  await (await aegis.setMaxStaleness(86400)).wait();
 
   // ── 1inch Aqua router (uncrossed-remainder routing) ──────────────────────────
   const aquaRouterDeploy = await deploy("AquaRouter", {
