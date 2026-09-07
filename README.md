@@ -1,4 +1,19 @@
-# 🛡️ Aegis Protocol V3.0
+# 🛡️ Aegis — Secure Settlement Infrastructure for Agentic Payments
+
+> **ETHOnline 2026 · Continuity Track.** This repository extends **Aegis V3** — the live, verified
+> MEV-resistant batch-settlement engine documented below — into the **safe-execution layer for
+> agentic payments.** Autonomous agents submit a *payment intent* and Aegis settles it at one fair,
+> uniform, front-run-proof clearing price: priced from **Chainlink + Pyth + API3**, driven by an
+> autonomous agent on the **Circle stack**, settled in **native USDC on Arc**, with **1inch Aqua**
+> as the overflow venue and **The Graph** as the agent's live data source.
+>
+> Everyone is racing to give agents wallets. Aegis is the infrastructure that keeps them from getting
+> robbed when they spend. Full hackathon spec: [`../idea.md`](../idea.md). The autonomous Solver Agent:
+> [`agent/`](./agent). **Everything below documents the pre-existing Aegis V3 base we build on.**
+
+---
+
+## 🛡️ Aegis Protocol V3.0 (pre-existing base)
 
 <div align="center">
 
