@@ -7,6 +7,7 @@ import { makeCircleClient, executeCrankViaCircle } from "./circle";
 import { routeUncrossedIfConfigured, AquaConfig } from "./aqua";
 import { submitPaymentIntent } from "./payment";
 import { AgentPaymentIntent, Asset } from "./paymentIntent";
+import { fetchOracleHealth, isSettlementSafe } from "./analytics";
 
 // Minimal AegisV4 surface the agent needs: one view for the current batch
 // (id, state, endBlock, ...), the collection-block view, the five
@@ -154,6 +155,20 @@ async function main() {
     seedIntent && writeContract
       ? async (state) => {
           if (seeded.has(state.batchId)) return;
+          // Load-bearing use of The Graph: only commit funds if the subgraph's
+          // oracle-health history shows >= 2 oracles reliably valid — otherwise
+          // the batch would void ("Insufficient valid oracles") and lock the deposit.
+          if (subgraphUrl) {
+            const health = await fetchOracleHealth(subgraphUrl);
+            if (!isSettlementSafe(health)) {
+              console.log(
+                new Date().toISOString(),
+                `holding payment-intent batch=${state.batchId} — The Graph: < 2 reliable oracles`,
+                JSON.stringify(health),
+              );
+              return; // re-checked next tick; deposits once oracle health recovers
+            }
+          }
           seeded.add(state.batchId);
           const ref = await submitPaymentIntent(writeContract!, seedIntent);
           console.log(new Date().toISOString(), `seeded payment-intent batch=${state.batchId}`, ref ?? "");
