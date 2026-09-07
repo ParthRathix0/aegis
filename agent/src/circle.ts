@@ -1,5 +1,6 @@
 import { initiateDeveloperControlledWalletsClient } from "@circle-fin/developer-controlled-wallets";
 import { CrankAction } from "./decide";
+import { AgentPaymentIntent, intentToOrder } from "./paymentIntent";
 
 export type CircleClient = ReturnType<typeof initiateDeveloperControlledWalletsClient>;
 
@@ -21,6 +22,58 @@ export function crankSignature(a: CrankAction): string | null {
     case "executeSettlement":
       return "executeSettlement()";
   }
+}
+
+// A single Circle contract-execution call (approve or deposit).
+export interface CircleCall {
+  contractAddress: string;
+  abiFunctionSignature: string;
+  abiParameters: string[];
+}
+
+// Token addresses the two-asset batch settles in.
+export interface DepositAssets {
+  aegis: string;
+  usdc: string; // quote (BUY spends this)
+  weth: string; // base  (SELL spends this)
+}
+
+// Pure: the ordered Circle calls to submit a payment intent as an Aegis deposit —
+// first approve the spent asset to Aegis, then deposit(amount, side). Spending
+// QUOTE (USDC) is a BUY (side 0); spending BASE (WETH) is a SELL (side 1). uint256
+// values are stringified (Circle abiParameters are strings; bigint isn't JSON-safe).
+export function depositCallsForIntent(intent: AgentPaymentIntent, assets: DepositAssets): CircleCall[] {
+  const order = intentToOrder(intent);
+  const token = intent.payWith === "QUOTE" ? assets.usdc : assets.weth;
+  const sideCode = order.side === "BUY" ? "0" : "1";
+  const amount = order.amount.toString();
+  return [
+    { contractAddress: token, abiFunctionSignature: "approve(address,uint256)", abiParameters: [assets.aegis, amount] },
+    { contractAddress: assets.aegis, abiFunctionSignature: "deposit(uint256,uint8)", abiParameters: [amount, sideCode] },
+  ];
+}
+
+// Executes the given Circle calls sequentially via the developer-controlled
+// wallet, returning each Circle transaction id. Callers that need on-chain
+// ordering (approve must confirm before deposit) should await confirmation
+// between calls via getTransaction.
+export async function depositViaCircle(
+  sdk: CircleClient,
+  walletId: string,
+  calls: CircleCall[],
+): Promise<string[]> {
+  const ids: string[] = [];
+  for (const call of calls) {
+    const res = await sdk.createContractExecutionTransaction({
+      walletId,
+      contractAddress: call.contractAddress,
+      abiFunctionSignature: call.abiFunctionSignature,
+      abiParameters: call.abiParameters,
+      fee: { type: "level", config: { feeLevel: "MEDIUM" } },
+    });
+    ids.push(res.data?.id ?? "");
+  }
+  return ids;
 }
 
 // Builds the Circle Agent Stack (developer-controlled wallets) client from env.
