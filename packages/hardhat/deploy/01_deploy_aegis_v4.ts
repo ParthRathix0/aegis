@@ -88,6 +88,14 @@ const deployAegisV4: DeployFunction = async function (hre: HardhatRuntimeEnviron
   console.log("Setting maxStaleness = 86400s...");
   await (await aegis.setMaxStaleness(86400)).wait();
 
+  // Arc has ~0.56s blocks, so the default block-count phase windows are only
+  // seconds long — too short for an agent's tx latency (deposit/collect window).
+  // Scale durations up so the deposit + oracle-collection window is minutes.
+  if (network === "arc") {
+    console.log("Arc: setPhaseDurations(100, 500, 100, 100) for sub-second blocks...");
+    await (await aegis.setPhaseDurations(100, 500, 100, 100)).wait();
+  }
+
   // ── 1inch Aqua router (uncrossed-remainder routing) ──────────────────────────
   const aquaRouterDeploy = await deploy("AquaRouter", {
     from: deployer,
