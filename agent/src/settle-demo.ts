@@ -105,23 +105,25 @@ async function main() {
   // 4) Crank to settlement via Circle, reusing the tested decision core.
   console.log("cranking to settlement (Circle-signed)...");
   for (let i = 0; i < 400; i++) {
-    const [, st, endBlock] = await read.getCurrentBatchInfo();
-    const lastCollect = await read.lastCollectionBlock();
-    const block = await provider.getBlockNumber();
-    const action = decideAction(
-      { batchId: bid, phase: phaseFromState(Number(st)), endBlock: Number(endBlock), lastCollectBlock: Number(lastCollect) },
-      block,
-    );
-    if (action.kind === "wait") { await sleep(12000); continue; }
-    const sig = crankSignature(action)!;
     try {
+      const [, st, endBlock] = await read.getCurrentBatchInfo();
+      const lastCollect = await read.lastCollectionBlock();
+      const block = await provider.getBlockNumber();
+      const action = decideAction(
+        { batchId: bid, phase: phaseFromState(Number(st)), endBlock: Number(endBlock), lastCollectBlock: Number(lastCollect) },
+        block,
+      );
+      if (action.kind === "wait") { await sleep(12000); continue; }
+      const sig = crankSignature(action)!;
       const h = await circleExec(sdk, AEGIS, sig, [], `crank.${action.kind}`);
       console.log(`  ${action.kind} @${block} → ${h}`);
+      if (action.kind === "executeSettlement") break;
+      await sleep(6000);
     } catch (e) {
-      console.error(`  ${action.kind} reverted/failed: ${(e as Error).message}`); await sleep(12000);
+      // Transient RPC/DNS blips or a too-early crank revert are non-fatal — log and keep ticking.
+      console.error(`  tick error (continuing): ${(e as Error).message?.split("\n")[0]}`);
+      await sleep(12000);
     }
-    if (action.kind === "executeSettlement") break;
-    await sleep(6000);
   }
 
   // 5) Claims — seller receives USDC (native-USDC settlement), buyer receives WETH.
