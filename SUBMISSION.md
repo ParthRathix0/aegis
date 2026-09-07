@@ -74,7 +74,7 @@ counterparty sold WETH; the batch settled and USDC was paid out on claim.
 - Circle-signed **executeSettlement**: [`0xdaebdf49`](https://sepolia.etherscan.io/tx/0xdaebdf494e0d091c1fc83adfa5253869ea9ac5d98d6d560f7463d5ef8eac014e)
 - **Seller receives USDC** on claim: [`0x6607b899`](https://sepolia.etherscan.io/tx/0x6607b899b6851cb027d1b017b83098bdfcb49e00a38b89f65b203f392e05e9bc)
 - Circle claim (BUY side receives WETH): [`0xbb5fbf44`](https://sepolia.etherscan.io/tx/0xbb5fbf4470d42d44cbaacdaf2f13052d6030436d6f40a9fef22c25d6294e2785)
-- Full hash set: `agent/settlement-evidence.json`
+- Full hash set: `agent/settlement-evidence.sepolia.json`
 - Note: this proves the Circle+USDC path; the **Arc-chain** re-run (same flow, `rpc.testnet.arc.io`) is the final Arc-prize artifact.
 
 ### Live Circle-driven USDC settlement ON ARC (the Arc-prize artifact)
@@ -101,24 +101,24 @@ every crank; the batch settled at $2000 and **5 USDC moved to the counterparty**
 
 ---
 
-## Per-sponsor continuity notes (paste into each prize)
+## Tracks we're entering (3)
 
-**The Graph — AI Tooling ($5,000):** The subgraph is the agent's live data source — it reads batch
-phase and market state from the subgraph to decide the next crank action. Without it, the agent is
-blind and nothing settles. Load-bearing, not decorative. (`subgraph/QUERIES.md`.)
+**The Graph — AI Tooling, Continuity ($2,500):** The subgraph is the agent's live data source **and a
+decision input**. The agent reads historical oracle-reliability analytics (`agent/src/analytics.ts`)
+from the subgraph and refuses to commit funds unless enough oracles have been reliably valid —
+genuine reasoning over live Graph data, not decoration. (`subgraph/`, `subgraph/QUERIES.md`.)
 
-**1inch — Aqua ($2,000):** `AquaRouter` forwards the batch's uncrossed remainder to the official
-1inch SwapVM; the uncrossed side is paid the Aqua fill (provably solvent, `nonReentrant`). The agent
-fetches an Aqua quote and routes post-settlement.
+**Arc (Circle) — Agentic, Continuity ($1,666):** The solver runs on the **Circle Agent Stack**
+(developer-controlled wallet) and settles **native USDC on Arc** — where USDC is the gas token, so the
+agent operates 100% in USDC. Full agent-driven USDC settlement verified on Arc (deposit → settle →
+counterparty receives 5 USDC). Every crank/deposit/settlement is Circle-signed.
 
-**Uniswap Foundation — Stack ($2,000):** Fair batch-auction settlement extracted as a reusable
-`BatchAuction` v4-hook primitive; `FEEDBACK.md` documents the v4 hook-interface usage + a concrete
-batch-settlement-hook improvement.
+**Chainlink — Continuity ($500):** Replaced the pre-existing mock oracles with a live Chainlink
+ETH/USD Data Feed (oracle id 1) that drives the on-chain settlement clearing price — a real
+state-change improvement over the pre-existing project.
 
-**Arc (Circle) — Agentic ($1,666):** The solver is built on the Circle Agent Stack (developer-controlled
-wallet) and settles agentic payments in **native USDC on Arc** — the literal agentic-payments rail this
-whole project is about. Every crank/settlement write routes through the Circle wallet.
-
-**Chainlink — Continuity ($500):** Replaced 5 mock oracles with a live Chainlink ETH/USD Data Feed
-(oracle id 1) that contributes to the onchain settlement price — a real state-change improvement over
-the pre-existing mock-oracle project.
+## Additional integrations (built, not submitted — 3-track limit)
+Real code exists and is tested, but we are not entering these tracks:
+- **1inch Aqua:** `AquaRouter` → official SwapVM + provably-solvent uncrossed-remainder routing
+  (needs KYC'd API key + a live SwapVM swap to qualify).
+- **Uniswap:** `BatchAuction` fair-matching primitive + `FEEDBACK.md`.
