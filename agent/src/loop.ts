@@ -5,6 +5,8 @@ import { fetchBatchPhase, phaseFromState } from "./subgraph";
 import { executeCrank } from "./executor";
 import { makeCircleClient, executeCrankViaCircle } from "./circle";
 import { routeUncrossedIfConfigured, AquaConfig } from "./aqua";
+import { submitPaymentIntent } from "./payment";
+import { AgentPaymentIntent, Asset } from "./paymentIntent";
 
 // Minimal AegisV4 surface the agent needs: one view for the current batch
 // (id, state, endBlock, ...), the collection-block view, the five
@@ -19,10 +21,23 @@ const ABI = [
   "function executeSettlement()",
   "function getUncrossedRemainder(uint256) view returns (bool,uint256)",
   "function routeUncrossedToAqua(uint256,uint256,bytes)",
+  "function deposit(uint256,uint8)",
 ];
 
 // Optional post-settlement hook: route the just-settled batch's uncrossed remainder to 1inch Aqua.
 type AfterSettle = (settledBatchId: string) => Promise<string | null>;
+
+// Optional demo seed: submit a configured agent payment intent once per fresh OPEN batch,
+// so the payment-intent path is visible in a live run (not just in unit tests).
+type Seed = (state: BatchState) => Promise<void>;
+
+// Build the seed payment intent from env; returns undefined unless pay-asset + amount are set.
+function buildSeedIntent(): AgentPaymentIntent | undefined {
+  const payWith = process.env.SEED_INTENT_PAY_WITH as Asset | undefined;
+  const amount = process.env.SEED_INTENT_AMOUNT;
+  if ((payWith !== "BASE" && payWith !== "QUOTE") || !amount) return undefined;
+  return { payWith, amount: BigInt(amount) };
+}
 
 // Build the Aqua routing config from env; returns undefined unless the router + key + assets are set.
 function buildAquaConfig(): AquaConfig | undefined {
@@ -53,6 +68,7 @@ async function tick(
   execute: Executor,
   subgraphUrl: string | undefined,
   afterSettle?: AfterSettle,
+  seed?: Seed,
 ): Promise<void> {
   const [batchId, stateRaw, endBlock] = await readContract.getCurrentBatchInfo();
   const lastCollect = await readContract.lastCollectionBlock();
@@ -71,6 +87,9 @@ async function tick(
     endBlock: Number(endBlock),
     lastCollectBlock: Number(lastCollect),
   };
+
+  // Demo seed: while the batch is open for orders, submit the configured payment intent.
+  if (seed && phase === "OPEN") await seed(state);
 
   const action = decideAction(state, block);
   const ref = await execute(action);
@@ -127,14 +146,29 @@ async function main() {
       ? (batchId) => routeUncrossedIfConfigured(writeContract!, Number(batchId), aquaCfg)
       : undefined;
 
+  // Demo seed: submit the configured payment intent once per OPEN batch. Needs a raw signer
+  // (deposit carries args); dedup by batchId so we don't re-deposit every tick.
+  const seedIntent = buildSeedIntent();
+  const seeded = new Set<string>();
+  const seed: Seed | undefined =
+    seedIntent && writeContract
+      ? async (state) => {
+          if (seeded.has(state.batchId)) return;
+          seeded.add(state.batchId);
+          const ref = await submitPaymentIntent(writeContract!, seedIntent);
+          console.log(new Date().toISOString(), `seeded payment-intent batch=${state.batchId}`, ref ?? "");
+        }
+      : undefined;
+
   console.log(
     `Aegis Solver Agent — aegis=${aegisAddress} signer=${signer} ` +
-      `subgraph=${subgraphUrl ?? "(contract fallback)"} aqua=${aquaCfg ? aquaCfg.aquaRouter : "(off)"}`,
+      `subgraph=${subgraphUrl ?? "(contract fallback)"} aqua=${aquaCfg ? aquaCfg.aquaRouter : "(off)"} ` +
+      `seed=${seedIntent ? `${seedIntent.payWith}:${seedIntent.amount}` : "(off)"}`,
   );
 
   for (;;) {
     try {
-      await tick(provider, readContract, execute, subgraphUrl, afterSettle);
+      await tick(provider, readContract, execute, subgraphUrl, afterSettle, seed);
     } catch (e) {
       // Reverts (e.g. cranking too early against a lagged subgraph) are
       // expected and non-fatal — log and keep ticking.
