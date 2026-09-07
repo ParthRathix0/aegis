@@ -51,10 +51,14 @@ const deployAegisV4: DeployFunction = async function (hre: HardhatRuntimeEnviron
   }
 
   // ── Quote asset (USDC) ──────────────────────────────────────────────────────
+  const ARC_USDC_ERC20 = "0x3600000000000000000000000000000000000000"; // Arc USDC ERC-20 interface (6 dec)
   let quoteAddr: string;
   if (network === "sepolia") {
     quoteAddr = SEPOLIA_USDC;
     console.log(`Using Circle test USDC (Sepolia): ${quoteAddr}`);
+  } else if (network === "arc") {
+    quoteAddr = ARC_USDC_ERC20;
+    console.log(`Using Arc native USDC (ERC-20 interface, 6 dec): ${quoteAddr}`);
   } else {
     const mockUSDC = await deploy("MockUSDC", {
       contract: "contracts/mocks/MockERC20.sol:MockERC20",
