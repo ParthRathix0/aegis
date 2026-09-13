@@ -40,19 +40,15 @@ branch, authored solely by Parth Arvind Rathi, starting September 4 2026.
 
 ## Sponsor integrations
 
-Every integration below is load-bearing — remove it and a concrete part of the settlement flow stops working.
+Each integration below is load-bearing — remove it and a concrete part of the settlement flow stops working.
 
 | Sponsor | How Aegis uses it | Where |
 |---|---|---|
 | **The Graph** | The agent's live data source **and decision input**: it reads oracle-reliability history from the subgraph and refuses to commit funds unless enough oracles have been reliably valid. Remove the subgraph and the agent is blind. | [`subgraph/`](./subgraph) · [`agent/src/analytics.ts`](./agent/src/analytics.ts) |
 | **Circle / Arc** | The solver runs on the Circle Agent Stack (developer-controlled wallet) and settles in **native USDC on Arc** — where USDC is the gas token, so the agent operates entirely in USDC. Every crank/deposit/settlement is Circle-signed; 5 USDC settled agent→counterparty on Arc testnet with zero human calls. | [`agent/src/circle.ts`](./agent/src/circle.ts) |
 | **Chainlink** | A live Chainlink ETH/USD Data Feed (oracle stack 1, consumed directly via `latestRoundData()`) drives the onchain settlement clearing price — a real state-change improvement over the pre-existing mock-oracle project. | [`packages/hardhat/contracts/AegisV4.sol`](./packages/hardhat/contracts/AegisV4.sol) |
-| **Pyth** | `PythOracleAdapter` (oracle stack 2) exposes a live Pyth ETH/USD price through the Chainlink `latestRoundData()` interface, giving the batch a second independent feed for confidence-weighted aggregation. | [`packages/hardhat/contracts/adapters/`](./packages/hardhat/contracts/adapters) |
-| **API3** | `API3OracleAdapter` (oracle stack 3) exposes a live API3 dAPI ETH/USD reading through the same interface — the third independent feed, so no single oracle can move the clearing price. | [`packages/hardhat/contracts/adapters/`](./packages/hardhat/contracts/adapters) |
-| **1inch** | `AquaRouter` forwards uncrossed/overflow remainder from a settled batch to the official 1inch SwapVM, with a provably-solvent payout. | [`packages/hardhat/contracts/AquaRouter.sol`](./packages/hardhat/contracts/AquaRouter.sol) · [`agent/src/aqua.ts`](./agent/src/aqua.ts) |
-| **Uniswap** | Fair uniform-price matching is extracted into a reusable `BatchAuction` v4-hook primitive, with `FEEDBACK.md` for the Hook Incubator. | [`packages/hardhat/contracts/lib/BatchAuction.sol`](./packages/hardhat/contracts/lib/BatchAuction.sol) · [`FEEDBACK.md`](./FEEDBACK.md) |
 
-Submitted tracks: **The Graph**, **Circle/Arc**, **Chainlink**. **Pyth**, **API3**, **1inch** and **Uniswap** are built and tested but not entered (3-track limit).
+Also built and tested but not entered (3-track limit): **1inch** and **Uniswap**.
 
 ## How it works
 
