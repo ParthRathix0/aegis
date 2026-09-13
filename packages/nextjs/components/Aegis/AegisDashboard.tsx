@@ -83,8 +83,8 @@ export default function AegisDashboard() {
   const contractConfig = useMemo(() => {
     const envAddressRaw = process.env.NEXT_PUBLIC_AEGIS_ADDRESS as string | undefined;
     const envAddress = envAddressRaw && isAddress(envAddressRaw) ? (envAddressRaw as `0x${string}`) : undefined;
-    const chainConfig = (deployedContracts as any)?.[chainId]?.AegisV3;
-    const localFallback = (deployedContracts as any)?.[31337]?.AegisV3;
+    const chainConfig = (deployedContracts as any)?.[chainId]?.AegisV4;
+    const localFallback = (deployedContracts as any)?.[31337]?.AegisV4;
 
     const address = (envAddress || chainConfig?.address || localFallback?.address || "0x0000000000000000000000000000000000000000") as `0x${string}`;
     const abi = chainConfig?.abi || localFallback?.abi || AEGIS_ABI;
