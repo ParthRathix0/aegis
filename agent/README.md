@@ -24,7 +24,7 @@ Each tick the agent:
 | `src/payment.ts` | `submitPaymentIntent()` — agent deposits a BUY/SELL payment intent each fresh OPEN batch (demo seed). |
 | `src/aqua.ts` | `routeUncrossedIfConfigured()` — post-settlement hook that routes uncrossed remainder to 1inch SwapVM via AquaRouter. |
 | `src/loop.ts` | The tick loop wiring everything together. |
-| `test/*.test.ts` | Vitest unit tests (20 tests green). |
+| `test/*.test.ts` | Vitest unit tests (42 tests green). |
 
 ## Run against Sepolia (production)
 
