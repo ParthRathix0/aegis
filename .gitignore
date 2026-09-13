@@ -57,3 +57,4 @@ ipfs-upload.config.json
 # IDEs
 .vscode/
 .idea/
+.superpowers/
